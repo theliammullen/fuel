@@ -71,9 +71,16 @@ Everything is stored on the phone (`localStorage['fuel.look']`) and applied befo
 - **Card density** (Comfortable / Compact) and **Reduce motion**. Reduce motion follows the device setting until you change it. It turns off confetti, shine, ring and bar animations.
 - **Ease of use**: the + sheet holds Say it, Read the label, My items (one tap logs and closes) and water. Browser/OS back and Escape close the top sheet. Every control has a touch area of at least 44×44 px.
 
+## Vitamin D and creatine (v1.4.1)
+- **Vitamin D**: your daily goal is **250 µg (10,000 IU)**, shown in both µg and IU. The baseline (RDA 15 µg / 600 IU) is what the daily score and "micros at baseline" use. The NASEM upper limit of 100 µg (4,000 IU) is shown for information only. Going over it gives no red warning and no score penalty, and the Coach doesn't treat it as a cap. The info sheet notes that the goal is above the NASEM UL and suggests checking blood 25(OH)D with a doctor. Change the goal under the nutrient's **Customise** section.
+- **Creatine** (g): goal **10 g/day**. The info sheet follows the ISSN 2017 position stand: 3–5 g/day maintenance, optionally after ~20 g/day loading for 5–7 days. The bundled USDA/CNF data has no creatine values, so creatine is counted **from supplements and labels only**. No values are invented for meat or fish. **Creatine monohydrate** (1 scoop = 5 g = 5 g creatine) sits in My items for one-tap logging. Creatine is pinned on Today by default. A one-time, additive migration pins it and adds the scoop for existing users without touching other data. Read the label and the manual form both accept creatine.
+
+## Backups
+Settings › Data › Export saves everything, including Appearance, to one JSON file. Import replaces the data on this phone with the backup (after a confirmation). Saves are written immediately when the app goes to the background.
+
 ## Food data (priority order when matching)
 USDA Foundation Foods (2026-04) › USDA SR Legacy (2018-04) › USDA FNDDS 2021-2023 › Health Canada Canadian Nutrient File 2015 › Open Food Facts (online, user-contributed).
 Rebuild the DB with `python3 data-build/build_foods.py` after placing the source files in `data-build/raw/`.
 
 ## Tests
-`node test/ui.js`, `node test/label.js`, `node test/smoke.js`, `node test/extra.js`, `node test/coach.js`, `node test/design.js` (every theme × layout: WCAG contrast + 44 px tap-target audit, screenshots in `screenshots/design/`; set `FUEL_URL` to override the default `http://127.0.0.1:8766/`) (Playwright + Chrome, iPhone viewport, against `python3 -m http.server 8765`).
+`node test/fixes.js` (v1.4.1 regression tests), `node test/qa.js [before|after] [webkit]` (first-time-user QA pass with tap counts, layout/input audit, export→import round-trip and offline reload; screenshots in `screenshots/qa/`), `node test/ui.js`, `node test/label.js`, `node test/smoke.js`, `node test/extra.js`, `node test/coach.js`, `node test/design.js` (every theme × layout: WCAG contrast + 44 px tap-target audit, screenshots in `screenshots/design/`; set `FUEL_URL` to override the default `http://127.0.0.1:8766/`) (Playwright + Chrome, iPhone viewport, against `python3 -m http.server 8765`).
