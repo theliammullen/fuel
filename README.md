@@ -62,9 +62,18 @@ Conversion notes:
 - IU conversions: vitamin D ÷ 40 → µg; vitamin A × 0.3 → µg; vitamin E × 0.67 → mg. Salt (g) × 400 → sodium (mg). kJ ÷ 4.184 → kcal.
 - A calcium, potassium, phosphorus or magnesium value spoken with no unit and ≤ 100 is treated as % DV (that's how Canadian labels print them) and flagged amber.
 
+## Appearance (Settings › Appearance, or the 🎨 button on Today)
+Everything is stored on the phone (`localStorage['fuel.look']`) and applied before first paint by `js/theme-boot.js`.
+- **Themes**: Midnight (default), Graphite, Ember, OLED Black (pure #000), Daylight, Paper, or Auto (follows the device's light/dark setting).
+- **Accent colour**: 9 presets or any custom colour. Accent text is tuned to keep 4.5:1 (WCAG AA) contrast on the theme. Text on accent buttons switches between white and dark automatically.
+- **Today layout**: **Tiles** (default: flat colour blocks with big numbers, Say it / Read the label as hero tiles, one-tap water and My items, a Coach tile), **Rings**, **Cards**, or **Compact**.
+- **Tile colours**: Vivid, Neon, Pastel, Jewel, or Accent palettes. You can also set any tile's colour yourself. Fuel picks white or dark text for each tile and nudges the shade if needed to keep AA contrast.
+- **Card density** (Comfortable / Compact) and **Reduce motion**. Reduce motion follows the device setting until you change it. It turns off confetti, shine, ring and bar animations.
+- **Ease of use**: the + sheet holds Say it, Read the label, My items (one tap logs and closes) and water. Browser/OS back and Escape close the top sheet. Every control has a touch area of at least 44×44 px.
+
 ## Food data (priority order when matching)
 USDA Foundation Foods (2026-04) › USDA SR Legacy (2018-04) › USDA FNDDS 2021-2023 › Health Canada Canadian Nutrient File 2015 › Open Food Facts (online, user-contributed).
 Rebuild the DB with `python3 data-build/build_foods.py` after placing the source files in `data-build/raw/`.
 
 ## Tests
-`node test/ui.js`, `node test/label.js`, `node test/smoke.js`, `node test/extra.js` (Playwright + Chrome, iPhone viewport, against `python3 -m http.server 8765`).
+`node test/ui.js`, `node test/label.js`, `node test/smoke.js`, `node test/extra.js`, `node test/coach.js`, `node test/design.js` (every theme × layout: WCAG contrast + 44 px tap-target audit, screenshots in `screenshots/design/`; set `FUEL_URL` to override the default `http://127.0.0.1:8766/`) (Playwright + Chrome, iPhone viewport, against `python3 -m http.server 8765`).

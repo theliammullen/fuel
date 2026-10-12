@@ -74,7 +74,7 @@ const OUT = __dirname + '/../screenshots/coach/';
 
   // ---- 3. Today card + What to eat next ----
   const card = await p.$('[data-coach="open"]'); ok(card, 'Coach card on Today after seeding');
-  await p.evaluate(() => { const c = document.querySelector('[data-coach="open"]').closest('.card'); window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 70); }); await shot('03-today-coach-card');
+  await p.evaluate(() => { const c = document.querySelector('[data-coach="open"]').closest('.card, .tl'); window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 70); }); await shot('03-today-coach-card');
   const sug = await p.evaluate(() => { const r = FuelCoach.suggest(__fuel.cur(), 8); return { left: r.M.kcalLeft, prot: r.M.gaps.protein.rem, picks: r.picks.map(x => `${x.c.grp}|${x.c.nm}|${x.label}|${Math.round(x.kc)} kcal|P ${Math.round(x.n.protein || 0)}|Na ${Math.round(x.n.sodium || 0)}`) }; });
   console.log(JSON.stringify(sug, null, 1));
   ok(sug.picks.length >= 5 && /protein|dairy/.test(sug.picks[0].split('|')[0]), 'first pick closes the protein gap');
