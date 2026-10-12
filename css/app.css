@@ -252,3 +252,13 @@ a{color:var(--a2)}
 /* 5 tabs + centred ＋: 2 tabs left (3fr each) and 3 tabs right (2fr each) take equal halves, so the ＋ sits on the centre line */
 .tabbar .fab{justify-self:center;margin-left:4px;margin-right:4px}
 .tab{white-space:nowrap}
+/* iOS < 16.2 has no color-mix(): plain fallbacks for the Tiles rules in themes.css (same selectors, declared earlier,
+   so browsers that understand color-mix() use the themes.css value and older Safari drops it and keeps these) */
+.tl .tbar{background:rgba(128,128,128,.28)}
+.tl .done{background:rgba(128,128,128,.24)}
+.tl .tb{background:rgba(128,128,128,.24)}
+.tl .tb:active{background:rgba(128,128,128,.36)}
+.tl.hit::after{background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%)}
+.tl .qi{background:rgba(128,128,128,.2)}
+.tl .qi:active,.tl .qi.press{background:rgba(128,128,128,.32)}
+.tl .more{background:rgba(128,128,128,.18)}
