@@ -1,0 +1,146 @@
+{
+ "taps": {
+  "Say it (Today tile → type → Find → Approve)": 3,
+  "Say it via + (＋ → Say it → type → Find → Approve)": 4,
+  "Read the label → Read → Save item": 3,
+  "My items one-tap": 1,
+  "Undo (toast)": 1,
+  "Hold My item → change serving sheet": 1,
+  "Water +250": 1,
+  "Water +500": 1,
+  "Search → type → pick → Add": 3,
+  "Barcode (typed) → Look up": 2,
+  "Coach → Eat next → pick → Approve": 3,
+  "Coach → Meal ideas → log idea": 2,
+  "Weigh-in": 2,
+  "Add goal": 2
+ },
+ "issues": [],
+ "checks": {
+  "fabCentre": -29,
+  "tabWidths": [
+   59,
+   59,
+   59,
+   59,
+   59
+  ],
+  "sayLogged": 3,
+  "labelForm": {
+   "name": "Kirkland Protein Bar",
+   "serving": "60",
+   "servingCls": "inp",
+   "slabel": ""
+  },
+  "customFoods": [
+   [
+    "Kirkland Protein Bar",
+    60,
+    "",
+    null
+   ]
+  ],
+  "undo": {
+   "entries": [
+    4,
+    5,
+    4
+   ],
+   "xp": [
+    55,
+    65,
+    55
+   ],
+   "achievements": [
+    1,
+    1
+   ]
+  },
+  "undoFirstEver": 9116,
+  "holdOpens": 1,
+  "water": [
+   0,
+   [
+    250,
+    500
+   ]
+  ],
+  "barcode": "Log food | No product found for 0055577101015. Create it",
+  "mealPortions": [
+   "Sardines in oil, canned — 1½ × 1 can (138 g)",
+   "Lentils, cooked — 1.1 × 1 cup cooked (224 g)",
+   "Spinach, raw — 1½ × 2 cups (90 g)",
+   "Tomato — 1½ × 1 medium (185 g)",
+   "Tofu, firm — 1.9 × 150 g (282 g)",
+   "Edamame, shelled — 0.8 × 1 cup (116 g)",
+   "Broccoli, cooked — 1½ × 1 cup (248 g)",
+   "Brown rice, cooked — 1 × ¾ cup cooked (157 g)",
+   "Atlantic salmon, baked — 1.9 × 120 g fillet (226 g)",
+   "Potato (PEI), baked with skin — 1½ × 1 medium (260 g)",
+   "Brussels sprouts, cooked — 1½ × 1 cup (248 g)",
+   "Turkey breast, roasted — 1.9 × 120 g cooked (226 g)"
+  ],
+  "weights": [
+   {
+    "d": "2026-10-11",
+    "lb": 182.4
+   }
+  ],
+  "goals": 6,
+  "tile_vitD": true,
+  "info_vitD": "Vitamin D\n4.1 µg\n27%\nBASELINE\n15\noptimal health\nPEAK\n15\nno evidence for higher\nUPPER LIMIT\n100\nUL\nBone health, muscle function and immunity. In PEI (~46°N) the sun is too weak to make vitamin D from about October to March.\nTargets: Goal = RDA 15 µg (600 IU), which NASEM set assuming minimal sun — so it already covers a PEI winter. No higher target: the Endocrine Society 2024 guideline (replacing its 2011 advice of 1500–2000 IU) recommends against routine doses above the DRI for healthy adults under 75. A supplement is reasonable if food falls short or a blood test is low. Stay under the 100 µg (4000 IU) UL. 1 µg = 40 IU.\nTOP FOOD SOURCES\nSalmon, trout, sardines, fortified milk & plant milks (Canadian milk is fortified), egg yolks, UV-exposed mushrooms; supplements\nYOUR TOP SOURCES TODAY\nFish, tuna, light\n2 µg\nEgg, whole, cooked\n2 µg\nSOURCES\nNASEM Dietary Reference Intakes for your age & ",
+  "tile_creatine": false,
+  "looks": {
+   "th": [
+    "auto",
+    "midnight",
+    "graphite",
+    "ember",
+    "oled",
+    "daylight",
+    "paper"
+   ],
+   "lay": [
+    "tiles",
+    "rings",
+    "cards",
+    "compact"
+   ],
+   "pal": [
+    "vivid",
+    "neon",
+    "pastel",
+    "jewel",
+    "mono"
+   ]
+  },
+  "roundTrip": {
+   "dataEqual": true,
+   "lookRestored": false,
+   "bytes": 20807,
+   "keys": [
+    "app",
+    "exported",
+    "data"
+   ]
+  },
+  "saveOnHide": {
+   "immediately": false,
+   "afterPagehide": false
+  },
+  "css": {
+   "colorMixRules": 8,
+   "colorMixWithoutFallback": 8,
+   "safeArea": true,
+   "viewportFit": "width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+  },
+  "offline": {
+   "title": "Fuel — Nutrition",
+   "tabs": 5,
+   "app": true,
+   "db": 18273,
+   "sw": "fuel-v1.4.0"
+  }
+ },
+ "errors": []
+}

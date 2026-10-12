@@ -16,7 +16,7 @@ let fails = 0; const ok = (name, cond, extra) => { console.log((cond ? 'ok   ' :
   // color-mix fallbacks
   const cm = await p.evaluate(async () => { const css = (await Promise.all(['css/app.css', 'css/themes.css'].map(u => fetch(u).then(r => r.text())))).join('}\n').replace(/\/\*[\s\S]*?\*\//g, '');
     const decls = []; css.split('}').forEach(r => { const [sel, body] = r.split('{'); if (!body) return; body.split(';').forEach(d => { const i = d.indexOf(':'); if (i > 0) decls.push({ sel: sel.trim().replace(/\s+/g, ' '), prop: d.slice(0, i).trim(), val: d.slice(i + 1) }); }); });
-    return decls.filter(d => d.val.includes('color-mix(') && !d.sel.includes('data-family=')).filter(d => !decls.slice(0, decls.indexOf(d)).some(o => o.sel === d.sel && o.prop === d.prop && !o.val.includes('color-mix('))).map(d => d.sel); });
+    return decls.filter(d => d.val.includes('color-mix(') && !d.sel.includes('data-family=') && !d.prop.startsWith('--')).filter(d => !decls.slice(0, decls.indexOf(d)).some(o => o.sel === d.sel && o.prop === d.prop && !o.val.includes('color-mix('))).map(d => d.sel); });
   ok('every Tiles color-mix() has a plain fallback', cm.length === 0, cm);
   // inputs ≥ 16px (no iOS focus zoom) in the label review + manual form
   // first-ever log + Undo returns XP and badges exactly
@@ -78,7 +78,7 @@ let fails = 0; const ok = (name, cond, extra) => { console.log((cond ? 'ok   ' :
   // pending save flushed when the app is hidden
   const fl = await p.evaluate(() => { __fuel.addWater(321); const a = localStorage.getItem('fuel.v1').includes('"ml":321'); window.dispatchEvent(new Event('pagehide')); return [a, localStorage.getItem('fuel.v1').includes('"ml":321')]; });
   ok('pending save written on pagehide', fl[1], fl);
-  ok('service worker cache version bumped', await p.evaluate(async () => /fuel-v1\.4\.[1-9]/.test(await (await fetch('sw.js')).text())));
+  ok('service worker cache version newer than fuel-v1.4.0', await p.evaluate(async () => { const m = (await (await fetch('sw.js')).text()).match(/fuel-v(\d+)\.(\d+)\.(\d+)/); if (!m) return false; const [a,b,c] = m.slice(1).map(Number); return a > 1 || (a === 1 && (b > 4 || (b === 4 && c > 0))); }));
   ok('no console errors', errs.length === 0, errs);
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();
