@@ -1,6 +1,7 @@
 /* Fuel — nutrient definitions, evidence-based targets and info sheets.
    Units are display units. `dbMult` converts the USDA DB unit (per 100 g) to the display unit.
    Baseline = NASEM Dietary Reference Intakes (RDA or AI) for males 19–30 y, which Health Canada adopts.
+              driFor() below swaps in the NASEM values for other age/sex groups (reviewed v1.3, see README 'Target review').
    Peak    = higher target ONLY where research supports it; otherwise identical to baseline (peakNote explains).
    UL      = Tolerable Upper Intake Level (NASEM) unless noted.                                      */
 (function (G) {
@@ -35,6 +36,8 @@
     IOM_K05: 'IOM 2005 potassium AI (4700 mg) & DASH trials; WHO 2012 recommends ≥ 3510 mg/day',
     ISSN_LEU: 'ISSN Position Stand (Jäger et al., 2017) — 700–3000 mg leucine per meal',
     PAULSEN: 'Paulsen et al. 2014 — high-dose vitamins C & E blunted training adaptations',
+    IOM_CAD: 'IOM/NASEM 2011 DRI for Calcium & Vitamin D — RDA 15 µg (600 IU) set assuming minimal sun exposure',
+    ACSM_CHO: 'ACSM/AND/DC 2016 (Thomas et al.) — carbs 3–5 g/kg/day light training, 5–7 g/kg moderate (~1 h/day), 6–10 g/kg high volume',
   };
 
   // helper: kg from lb
@@ -51,8 +54,8 @@
       peakNote:'Baseline = RDA 0.8 g/kg. Peak = your 170 g goal (≈2.2 g/kg at 170 lb), inside the ISSN 1.4–2.0+ g/kg range and Helms 2.3–3.1 g/kg lean mass for lean athletes in a deficit.' },
     { key:'carbs', name:'Carbohydrates', short:'Carbs', unit:'g', group:'macro', dp:0, color:'#f6ad55', type:'target',
       why:'Primary fuel for hard training. Enough carbs keeps workouts strong, glycogen stocked and muscles looking full. Fibre-rich carb sources also support gut and heart health.',
-      src:[SRC.DRI, SRC.ACSM_NUT, SRC.REYNOLDS], foods:'Oats, rice, potatoes, fruit, beans & lentils, whole-grain bread & pasta, quinoa',
-      peakNote:'Baseline = RDA 130 g (brain glucose). Peak = whatever energy remains after protein and fat, to fuel training (ACSM: ~3–5 g/kg/day for moderate training).' },
+      src:[SRC.DRI, SRC.ACSM_CHO, SRC.REYNOLDS], foods:'Oats, rice, potatoes, fruit, beans & lentils, whole-grain bread & pasta, quinoa',
+      peakNote:'Baseline = RDA 130 g (brain glucose). Peak = whatever energy remains after protein and fat. For reference, ACSM suggests 3–5 g/kg/day for light or skill-based training and 5–7 g/kg/day for ~1 h/day of moderate training; during a fat-loss phase carbs usually land below that, so put them around workouts.' },
     { key:'fibre', name:'Fibre', short:'Fibre', unit:'g', group:'macro', dp:0, color:'#68d391', type:'target', ul:null,
       why:'Feeds your gut microbiome, steadies blood sugar, lowers LDL cholesterol, keeps you full on a cut. Higher intakes are linked to lower mortality, heart disease and colorectal cancer.',
       src:[SRC.DRI, SRC.REYNOLDS], foods:'Beans & lentils, chia & flax, raspberries, pears, oats, broccoli, artichoke, whole grains, avocado',
@@ -94,17 +97,17 @@
     { key:'cholesterol', name:'Cholesterol', short:'Chol.', unit:'mg', group:'fat', dp:0, color:'#fbd38d', type:'track',
       why:'Dietary cholesterol has a modest effect on blood cholesterol for most people. The old 300 mg cap was dropped; eggs fit a healthy diet.', src:[SRC.DRI_E, SRC.DGA], foods:'Eggs, shellfish, organ meats', peakNote:'No DRI or UL — "as low as practical within a healthy pattern" (NASEM). Tracked only.' },
     // ---------- Vitamins ----------
-    { key:'vitA', name:'Vitamin A', short:'Vit A', unit:'µg', group:'vitamin', dp:0, color:'#f6e05e', type:'target', base:900, ul:3000,
+    { key:'vitA', name:'Vitamin A', short:'Vit A', unit:'µg', group:'vitamin', dp:0, color:'#f6e05e', type:'target', base:900, ul:3000, ulNote:'UL 3000 µg applies to preformed vitamin A (retinol: liver, fish-liver oil, supplements), not to beta-carotene, so food totals in RAE are not compared with it.',
       why:'Vision, immunity, skin and cell growth.', src:[SRC.DRI], foods:'Sweet potato, carrots, spinach, kale, liver, eggs, cantaloupe',
       peakNote:'No evidence for a higher target. RAE. UL 3000 µg applies to preformed retinol (liver, supplements), not beta-carotene.' },
     { key:'vitC', name:'Vitamin C', short:'Vit C', unit:'mg', group:'vitamin', dp:0, color:'#fbd38d', type:'target', base:90, peak:200, ul:2000,
       why:'Collagen for tendons & skin, immunity, iron absorption, antioxidant.', src:[SRC.DRI, SRC.LEVINE, SRC.PAULSEN], foods:'Red peppers, kiwi, oranges, strawberries, broccoli, Brussels sprouts',
       peakNote:'Peak 200 mg ≈ intake where plasma & tissue levels saturate (Levine 1996); easy from food. Avoid mega-dose (≥1 g) supplements around training — may blunt adaptations.' },
-    { key:'vitD', name:'Vitamin D', short:'Vit D', unit:'µg', group:'vitamin', dp:1, color:'#f6ad55', type:'target', base:15, peak:50, ul:100, lowData:false,
+    { key:'vitD', name:'Vitamin D', short:'Vit D', unit:'µg', group:'vitamin', dp:1, color:'#f6ad55', type:'target', base:15, ul:100, lowData:false,
       why:'Bone health, muscle function and immunity. In PEI (~46°N) the sun is too weak to make vitamin D from about October to March.',
-      src:[SRC.DRI, SRC.ENDO11, SRC.ENDO24], foods:'Salmon, trout, sardines, fortified milk & plant milks, egg yolks, UV-exposed mushrooms; supplements',
-      peakNote:'Peak 50 µg (2000 IU): mixed evidence — Endocrine Society 2011 suggested 1500–2000 IU to keep blood 25(OH)D > 75 nmol/L; its 2024 update found no benefit of routine high doses in healthy adults. Sensible at high latitude in winter or if a blood test is low. Stay under the 100 µg (4000 IU) UL. 1 µg = 40 IU.' },
-    { key:'vitE', name:'Vitamin E', short:'Vit E', unit:'mg', group:'vitamin', dp:1, color:'#f6e05e', type:'target', base:15, ul:1000,
+      src:[SRC.DRI, SRC.IOM_CAD, SRC.ENDO24, SRC.ENDO11], foods:'Salmon, trout, sardines, fortified milk & plant milks (Canadian milk is fortified), egg yolks, UV-exposed mushrooms; supplements',
+      peakNote:'Goal = RDA 15 µg (600 IU), which NASEM set assuming minimal sun — so it already covers a PEI winter. No higher target: the Endocrine Society 2024 guideline (replacing its 2011 advice of 1500–2000 IU) recommends against routine doses above the DRI for healthy adults under 75. A supplement is reasonable if food falls short or a blood test is low. Stay under the 100 µg (4000 IU) UL. 1 µg = 40 IU.' },
+    { key:'vitE', name:'Vitamin E', short:'Vit E', unit:'mg', group:'vitamin', dp:1, color:'#f6e05e', type:'target', base:15, ul:1000, ulNote:'UL 1000 mg applies to supplemental α-tocopherol only.',
       why:'Antioxidant protecting cell membranes.', src:[SRC.DRI, SRC.PAULSEN], foods:'Sunflower seeds, almonds, hazelnuts, avocado, spinach, olive oil',
       peakNote:'No evidence for higher; high-dose supplements may blunt training adaptations. UL applies to supplements (α-tocopherol).' },
     { key:'vitK', name:'Vitamin K', short:'Vit K', unit:'µg', group:'vitamin', dp:0, color:'#9ae6b4', type:'target', base:120,
@@ -113,7 +116,7 @@
       why:'Turns carbohydrate into energy; nerve function.', src:[SRC.DRI], foods:'Pork, whole grains, fortified cereals, beans, sunflower seeds', peakNote:'No evidence for a higher target; no UL.' },
     { key:'riboflavin', name:'Riboflavin (B2)', short:'B2', unit:'mg', group:'vitamin', dp:2, color:'#90cdf4', type:'target', base:1.3,
       why:'Energy metabolism and antioxidant recycling.', src:[SRC.DRI], foods:'Milk, yogurt, eggs, lean meat, almonds, mushrooms', peakNote:'No evidence for a higher target; no UL.' },
-    { key:'niacin', name:'Niacin (B3)', short:'B3', unit:'mg', group:'vitamin', dp:1, color:'#90cdf4', type:'target', base:16, ul:35,
+    { key:'niacin', name:'Niacin (B3)', short:'B3', unit:'mg', group:'vitamin', dp:1, color:'#90cdf4', type:'target', base:16, ul:35, ulNote:'UL 35 mg applies to niacin from supplements & fortified foods only — food niacin (meat, fish) routinely exceeds it safely.',
       why:'Energy metabolism, DNA repair.', src:[SRC.DRI], foods:'Chicken, tuna, salmon, turkey, peanuts, fortified grains',
       peakNote:'No evidence for higher. Target is niacin equivalents; food data lists preformed niacin only, so true intake is higher (protein tryptophan adds more). UL applies to supplements/fortificants.' },
     { key:'pantothenic', name:'Pantothenic acid (B5)', short:'B5', unit:'mg', group:'vitamin', dp:1, color:'#90cdf4', type:'target', base:5,
@@ -123,7 +126,7 @@
     { key:'biotin', name:'Biotin (B7)', short:'B7', unit:'µg', group:'vitamin', dp:0, color:'#90cdf4', type:'target', base:30, lowData:true,
       why:'Fat, carbohydrate and amino-acid metabolism.', src:[SRC.DRI], foods:'Eggs, liver, salmon, sunflower seeds, sweet potato',
       peakNote:'No evidence for higher (AI). USDA reports biotin for very few foods, so totals will read low.' },
-    { key:'folate', name:'Folate (B9)', short:'Folate', unit:'µg', group:'vitamin', dp:0, color:'#90cdf4', type:'target', base:400, ul:1000,
+    { key:'folate', name:'Folate (B9)', short:'Folate', unit:'µg', group:'vitamin', dp:0, color:'#90cdf4', type:'target', base:400, ul:1000, ulNote:'UL 1000 µg applies to folic acid from supplements & fortified foods only, not natural food folate.',
       why:'DNA synthesis, red blood cells, homocysteine control.', src:[SRC.DRI], foods:'Lentils, chickpeas, spinach, asparagus, avocado, fortified grains',
       peakNote:'No evidence for higher. DFE. UL 1000 µg applies to folic acid from supplements/fortified foods.' },
     { key:'b12', name:'Vitamin B12', short:'B12', unit:'µg', group:'vitamin', dp:1, color:'#90cdf4', type:'target', base:2.4,
@@ -136,15 +139,15 @@
     { key:'iron', name:'Iron', short:'Iron', unit:'mg', group:'mineral', dp:1, color:'#feb2b2', type:'target', base:8, ul:45,
       why:'Carries oxygen in blood and muscle — key for endurance.', src:[SRC.DRI], foods:'Beef, mussels, oysters, lentils, spinach, fortified cereal (pair plants with vitamin C)',
       peakNote:'No evidence for higher in men; excess iron can be harmful, so don\'t supplement unless blood work shows low ferritin.' },
-    { key:'magnesium', name:'Magnesium', short:'Magnesium', unit:'mg', group:'mineral', dp:0, color:'#81e6d9', type:'target', base:400, peak:450, ul:350, ulNote:'UL 350 mg applies to supplements only (not food).',
+    { key:'magnesium', name:'Magnesium', short:'Magnesium', unit:'mg', group:'mineral', dp:0, color:'#81e6d9', type:'target', base:400, peak:450, peakRel:1.125, ul:350, ulNote:'UL 350 mg applies to supplements only (not food).',
       why:'300+ enzyme reactions: energy production, muscle contraction & relaxation, sleep, blood sugar.', src:[SRC.DRI, SRC.NIELSEN], foods:'Pumpkin seeds, chia, almonds, spinach, black beans, dark chocolate, quinoa',
-      peakNote:'Peak 450 mg (≈ +10–20%): strenuous training increases losses in sweat & urine (Nielsen & Lukaski 2006; moderate evidence). UL is for supplemental magnesium only.' },
+      peakNote:'Baseline = RDA (400 mg men 19–30, 420 mg 31+). Peak ≈ +12% (450 mg at 19–30): strenuous training increases losses in sweat & urine (Nielsen & Lukaski 2006; moderate evidence). UL is for supplemental magnesium only.' },
     { key:'phosphorus', name:'Phosphorus', short:'Phos.', unit:'mg', group:'mineral', dp:0, color:'#e2e8f0', type:'target', base:700, ul:4000,
       why:'Bones, ATP energy, cell membranes.', src:[SRC.DRI], foods:'Dairy, meat, fish, beans, nuts', peakNote:'No evidence for a higher target.' },
     { key:'potassium', name:'Potassium', short:'Potassium', unit:'mg', group:'mineral', dp:0, color:'#76e4f7', type:'target', base:3400, peak:4700,
       why:'Muscle and nerve function, fluid balance; higher intakes lower blood pressure and blunt the effects of sodium.',
       src:[SRC.DRI_NAK, SRC.IOM_K05], foods:'Potatoes, beans, lentils, bananas, avocado, spinach, yogurt, salmon, squash',
-      peakNote:'Peak 4700 mg: earlier IOM AI and DASH-style diets that lowered blood pressure; WHO recommends ≥ 3510 mg. Moderate evidence; food sources only (no UL from food).' },
+      peakNote:'Baseline = NASEM 2019 AI 3400 mg (men). Peak 4700 mg = the older IOM 2005 AI, which NASEM 2019 replaced for lack of evidence, kept here only as a stretch goal because DASH-style intakes lower blood pressure; WHO recommends ≥ 3510 mg. Moderate evidence; food sources only (no UL from food).' },
     { key:'sodium', name:'Sodium', short:'Sodium', unit:'mg', group:'mineral', dp:0, color:'#fbb6ce', type:'limit', base:1500,
       why:'Needed for fluid balance and muscle contraction (and lost in sweat), but excess raises blood pressure.',
       src:[SRC.DRI_NAK, SRC.ACSM_FLUID], foods:'Salt, processed meats, cheese, bread, sauces, restaurant food',
@@ -194,6 +197,24 @@
     athlete:  { mult:1.9,  label:'Athlete (2-a-days / physical job)', water:1000 },
   };
 
+  /* NASEM DRI values that differ from the male 19–30 defaults in N (RDA/AI; '<key>UL' = UL). Used by computeTargets so the
+     sex/age in the profile actually change the micronutrient targets (before v1.3 every profile got male 19–30 values).
+     Source: NASEM DRI summary tables (Vitamins, Elements, Macronutrients, Water/Electrolytes; Sodium & Potassium 2019). */
+  function driFor(p) {
+    const a = +p.age || 30, o = {};
+    if (p.sex !== 'female') {
+      if (a >= 31) o.magnesium = 420;
+      if (a >= 51) Object.assign(o, { fibre: 30, b6: 1.7, omega6: 14, calciumUL: 2000 });
+      if (a >= 71) Object.assign(o, { calcium: 1200, vitD: 20, phosphorusUL: 3000 });
+    } else {
+      Object.assign(o, { vitA: 700, vitC: 75, vitK: 90, thiamin: 1.1, riboflavin: 1.1, niacin: 14, choline: 425, iron: 18, magnesium: a >= 31 ? 320 : 310,
+        potassium: 2600, zinc: 8, manganese: 1.8, fluoride: 3, fibre: 25, ala: 1.1, omega6: 12, water: 2200 });
+      if (a >= 51) Object.assign(o, { iron: 8, fibre: 21, b6: 1.5, omega6: 11, calcium: 1200, calciumUL: 2000 });
+      if (a >= 71) Object.assign(o, { vitD: 20, phosphorusUL: 3000 });
+    }
+    return o;
+  }
+
   function energy(p) {
     const wkg = kg(p.weightLb), hcm = p.heightCm;
     const bmr = 10*wkg + 6.25*hcm - 5*p.age + (p.sex==='female' ? -161 : 5);
@@ -210,7 +231,7 @@
 
   /** Compute all targets: {key:{base, peak, ul, limit, goal, kind}} */
   function computeTargets(p, s, day) {
-    const e = energy(p);
+    const e = energy(p); const dri = driFor(p);
     const training = day && day.training && day.training.on ? (+day.training.hours || 1) : 0;
     const kcal = Math.round(e.kcal / 10) * 10;
     const protein = p.proteinG || 170;
@@ -224,17 +245,23 @@
     set('protein', { base: Math.round(0.8 * e.wkg), peak: protein });
     set('carbs', { base:130, peak:carbsG });
     set('fat', { base: Math.round(0.20*kcal/9), peak: fatG, ul: Math.round(0.35*kcal/9), ulSoft:true });
-    set('fibre', { base:38, peak:38 });
+    set('fibre', { base:dri.fibre ?? 38, peak:dri.fibre ?? 38 });
     set('addedSugar', { limit: Math.round(0.10*kcal/4) });
     set('satFat', { limit: Math.round(0.10*kcal/9) });
     set('transFat', { limit: +(0.01*kcal/9).toFixed(1) });
-    set('ala', { base:1.6, peak:1.6 });
+    set('ala', { base:dri.ala ?? 1.6, peak:dri.ala ?? 1.6 });
     set('epaDha', { base:250, peak:1000, ul:3000, ulSoft:true });
-    set('omega6', { base:17, peak:17 });
+    set('omega6', { base:dri.omega6 ?? 17, peak:dri.omega6 ?? 17 });
     set('sodium', { base:1500, limit: 2300 + training*500 });
     set('caffeine', { limit:400 });
-    set('water', { base: 3000 + training*700, peak: Math.max(3000 + training*700, waterPeak) });
-    N.forEach(n => { if (!T[n.key]) set(n.key, { base:n.base ?? null, peak:(n.peak ?? n.base ?? null), ul:n.ul ?? null }); else if (T[n.key].ul==null && n.ul) T[n.key].ul=n.ul; });
+    const waterBase = dri.water ?? 3000;   // NASEM AI from beverages: ~3.0 L men, ~2.2 L women (of 3.7 / 2.7 L total water)
+    set('water', { base: waterBase + training*700, peak: Math.max(waterBase + training*700, waterPeak) });
+    N.forEach(n => {
+      if (T[n.key]) { if (T[n.key].ul==null && n.ul) T[n.key].ul=n.ul; return; }
+      const base = dri[n.key] ?? n.base ?? null;
+      const peak = n.peakRel && base != null ? Math.round(base * n.peakRel / 5) * 5 : Math.max(n.peak ?? base ?? 0, base ?? 0) || null;
+      set(n.key, { base, peak, ul: dri[n.key + 'UL'] ?? n.ul ?? null });
+    });
     // overrides
     const ov = (s && s.overrides) || {};
     Object.keys(ov).forEach(k => { if (T[k]) Object.keys(ov[k]).forEach(f => { const v = ov[k][f]; if (v!==''&&v!=null&&!isNaN(v)) T[k][f] = +v; }); });
@@ -247,5 +274,5 @@
     return T;
   }
 
-  G.NUTR = { N, BY, GROUPS, MICROS, VITAMINS, MINERALS, ACTIVITY, SRC, computeTargets, energy, kg };
+  G.NUTR = { N, BY, GROUPS, MICROS, VITAMINS, MINERALS, ACTIVITY, SRC, computeTargets, energy, kg, driFor };
 })(window);

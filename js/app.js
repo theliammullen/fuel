@@ -1719,8 +1719,9 @@ function openWaterList() {
 /* ---------------- router & events ---------------- */
 function render() {
   const app = $('#app'); const y = window.scrollY;
-  const fn = { today: renderToday, nutrients: renderNutrients, progress: renderProgress, awards: renderAwards }[VIEW];
+  const fn = { today: renderToday, nutrients: renderNutrients, progress: renderProgress, awards: renderAwards }[VIEW] || (window.FuelCoach && FuelCoach.views[VIEW]) || renderToday;
   app.innerHTML = `<div class="view">${fn()}</div>`;
+  if (window.FuelCoach) FuelCoach.afterRender(app, VIEW); // Coach card on Today (js/coach.js)
   $$('#tabbar .tab').forEach(t => t.classList.toggle('on', t.dataset.tab === VIEW));
   animateRings(app);
   const dp = $('#datepick'); if (dp) dp.onchange = () => { if (dp.value) { CUR = dp.value; render(); } };
@@ -1792,4 +1793,6 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 let lastToday = today();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
 window.__fuel = { S: () => S, totals, evalDay, targetsFor, searchLocal, localParse, parseLabel, matchItems, openReview, gameCtx, loadDB, render, go, setDay: d => { CUR = d; render(); } };
+// used by the Coach (js/coach.js): read-only helpers + the existing review / water logging flows
+Object.assign(window.__fuel, { DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
 })();
