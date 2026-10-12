@@ -79,7 +79,7 @@ const STAPLES = [
   [cnf('422'), 'Olive oil', 14, '1 tbsp', 'fat', { fixed: 1 }],
 ];
 function cnf(n) { return 'cnf' + n; }
-const GROUP_LABEL = { protein: 'Protein', dairy: 'Dairy', drink: 'Drink', legume: 'Legumes', grain: 'Starch', fruit: 'Fruit', veg: 'Veg', fat: 'Healthy fat', mine: 'Yours' };
+const GROUP_LABEL = { protein: 'Protein', dairy: 'Dairy', drink: 'Drink', legume: 'Legumes', grain: 'Starch', fruit: 'Fruit', veg: 'Veg', fat: 'Fats', mine: 'Yours' };
 
 /* meal & snack templates (2–4 foods). parts: [staple id, multiplier of the staple portion] */
 const MEALS_T = [
@@ -285,7 +285,7 @@ function pickRow(p, i, compact) {
 function waterRow(M) {
   if (M.waterLeft < 200) return '';
   const ml = Math.min(750, Math.max(250, Math.round(M.waterLeft / 2 / 250) * 250));
-  return `<button class="co-pick" data-coach-water="${ml}"><span class="co-grp co-g-drink">💧 Water</span><div class="co-pm"><b>Glass of water</b><span>${fmtMl(ml)} · 0 kcal · ${fmtMl(M.waterLeft)} still to go</span></div><span class="co-add">＋</span></button>`;
+  return `<button class="co-pick" data-coach-water="${ml}"><span class="co-grp co-g-drink">Water</span><div class="co-pm"><b>Glass of water</b><span>${fmtMl(ml)} · 0 kcal · ${fmtMl(M.waterLeft)} still to go</span></div><span class="co-add">＋</span></button>`;
 }
 
 /* ---------- Today card ---------- */

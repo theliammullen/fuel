@@ -1,12 +1,12 @@
 /* Fuel — nutrient definitions, evidence-based targets and info sheets.
    Units are display units. `dbMult` converts the USDA DB unit (per 100 g) to the display unit.
-   Baseline = NASEM Dietary Reference Intakes (RDA or AI) for males 19–30 y, which Health Canada adopts.
+   Baseline = NASEM Dietary Reference Intakes (RDA or AI) for the profile's age & sex (driFor; default male 19–30), which Health Canada adopts.
               driFor() below swaps in the NASEM values for other age/sex groups (reviewed v1.3, see README 'Target review').
    Peak    = higher target ONLY where research supports it; otherwise identical to baseline (peakNote explains).
    UL      = Tolerable Upper Intake Level (NASEM) unless noted.                                      */
 (function (G) {
   const SRC = {
-    DRI: 'NASEM Dietary Reference Intakes (males 19–30), adopted by Health Canada',
+    DRI: 'NASEM Dietary Reference Intakes for your age & sex (default: males 19–30), adopted by Health Canada',
     DRI_E: 'NASEM DRI: Energy (2023) & Macronutrients (2005) — AMDR',
     DRI_NAK: 'NASEM DRI for Sodium and Potassium (2019)',
     DRI_W: 'NASEM DRI for Water, Potassium, Sodium, Chloride & Sulfate (2005)',
