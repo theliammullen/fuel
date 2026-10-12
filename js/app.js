@@ -969,6 +969,7 @@ function openCustomFood(c, opts = {}) {
    ${editing ? '<button class="btn danger block" id="cfdel" style="margin-top:10px">Delete food</button>' : ''}`;
   const rec = openSheet(editing ? 'Edit food' : 'Custom food', html, { full: true });
   const sh = rec.sh; let perSel = per, hyd = !!c.hyd; let mealSel = defaultMeal();
+  if (R && !R.servingMissing) { const i = $('#cfs', sh); i.classList.add(R.notes._serving ? 'hl-assumed' : 'hl-ok'); if (c.servingLabel) $('#cfsl', sh).classList.add('hl-ok'); if (R.notes._serving) i.insertAdjacentHTML('afterend', '<div class="hlnote">No unit heard — assumed grams</div>'); }
   if (R && R.servingMissing) { const i = $('#cfs', sh); i.classList.add('hl-assumed'); i.insertAdjacentHTML('afterend', '<div class="hlnote">No serving size heard — values treated as per 100 g</div>'); }
   $$('#cfmeal .chip', sh).forEach(b => b.onclick = () => { mealSel = b.dataset.m; $$('#cfmeal .chip', sh).forEach(x => x.classList.toggle('on', x === b)); });
   $$('#cfdv button', sh).forEach(b => b.onclick = () => { if (b.dataset.v === R.ref) return; S.settings.dvRef = b.dataset.v; save(); closeSheet(rec); openLabelReview(parseLabel(R.text, b.dataset.v), R.text); });
@@ -1441,11 +1442,11 @@ function parseLabel(text, ref = 'CA') {
       const nk = w.match(/^@@(\d+)@@$/);
       if (nk) { toks.push({ t: 'N', k: LABEL_SYN[+nk[1]][1], i }); continue; }
       if (/^\d+(\.\d+)?$/.test(w) || /^\d+\/\d+$/.test(w)) {
-        let v = w.includes('/') ? w.split('/')[0] / w.split('/')[1] : parseFloat(w); let unit = null;
+        let v = w.includes('/') ? w.split('/')[0] / w.split('/')[1] : parseFloat(w); let unit = null; const i0 = i;
         const nx = words[i + 1];
         if (nx) for (const [re, u] of UNIT_SYN) if (re.test(nx)) { unit = u; i++; break; }
         if (unit === 'l') { unit = 'ml'; v *= 1000; }
-        toks.push({ t: 'V', v, unit, i }); continue;
+        toks.push({ t: 'V', v, unit, i, i0 }); continue;
       }
       if (UNIT_SYN.some(([re]) => re.test(w)) && toks.length && toks[toks.length - 1].t === 'V' && !toks[toks.length - 1].unit) { toks[toks.length - 1].unit = UNIT_SYN.find(([re]) => re.test(w))[1]; continue; }
       if (/^[,;.:!?\-–—+]$/.test(w)) continue;
@@ -1455,7 +1456,10 @@ function parseLabel(text, ref = 'CA') {
     const svx = toks.findIndex(x => x.t === 'N' && x.k === 'serving');
     if (svx >= 0) {
       let j = svx + 1, mass = null; const lab = [];
-      while (j < toks.length && !(toks[j].t === 'N' && toks[j].k !== 'serving')) {
+      // amount before the word: "60 gram serving", "60 g per serving" (then nothing after "serving" belongs to it)
+      const pv = toks[svx - 1], pre = !!(pv && pv.t === 'V' && ['g', 'ml', 'oz'].includes(pv.unit));
+      if (pre) mass = pv;
+      while (!pre && j < toks.length && !(toks[j].t === 'N' && toks[j].k !== 'serving')) {
         const x = toks[j];
         if (x.t === 'V' && ['g', 'ml', 'oz'].includes(x.unit)) { mass = x; j++; break; }
         if (x.t === 'V' && !x.unit && (toks[j + 1] && toks[j + 1].t === 'N' || j + 1 >= toks.length) && x.v > 5 && !lab.some(l => /\d/.test(l))) { mass = x; out.notes._serving = 'assumed grams'; j++; break; }
@@ -1465,7 +1469,8 @@ function parseLabel(text, ref = 'CA') {
       if (mass) { out.servingG = mass.unit === 'oz' ? mass.v * 28.35 : mass.v; if (mass.unit === 'ml') out.drink = true; }
       else out.unparsed.push('serving size (no g/ml amount) — “' + seg + '”');
       if (lab.length) out.servingLabel = lab.join(' ');
-      if (si === 0 && svx > 0 && !out.name) out.name = segWords(seg, toks[svx], words);
+      const nameEnd = pre ? svx - 1 : svx;
+      if (si === 0 && nameEnd > 0 && !out.name) out.name = segWords(seg, pre ? { i: pv.i0 } : toks[nameEnd], words);
       toks.splice(0, j);
     } else if (si === 0 && !out.name) {
       // leading name with no commas: words up to the last plain word before the first number ("kirkland protein bar 190 calories …")
@@ -1536,7 +1541,10 @@ function openLabel() {
 function labelToCustom(P) {
   const sg = P.servingG || 100; const n100 = {};
   for (const k in P.n) n100[k] = P.n[k] * 100 / sg;
-  return { name: P.name, brand: '', servingG: sg, servingLabel: P.servingLabel || '', per: 'serving', n100, hyd: P.drink };
+  const amt = P.servingG ? fmt(P.servingG, 1) + (P.drink ? ' ml' : ' g') : '';
+  // "serving 60 grams" → label "1 serving (60 g)"; "serving size 2 bars 60 grams" → "2 bars (60 g)"
+  const sl = P.servingLabel ? P.servingLabel + (amt ? ' (' + amt + ')' : '') : amt ? '1 serving (' + amt + ')' : '';
+  return { name: P.name, brand: '', servingG: sg, servingLabel: sl, per: 'serving', n100, hyd: P.drink };
 }
 function openLabelReview(P, text) {
   openCustomFood(labelToCustom(P), { review: { hl: P.how, notes: P.notes, unparsed: P.unparsed, text, ref: P.ref, servingMissing: !P.servingG, nameMissing: !P.name } });
