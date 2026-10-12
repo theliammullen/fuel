@@ -3,7 +3,7 @@
 (function () {
 'use strict';
 var KEY = 'fuel.look';
-var DEF = { theme: 'midnight', kitchenMode: 'auto', accent: null, layout: 'tiles', density: 'comfortable', motion: null, palette: null, tiles: {} }; // palette null = the theme's default
+var DEF = { theme: 'kitchen', kitchenMode: 'auto', accent: null, layout: 'tiles', density: 'comfortable', motion: null, palette: null, tiles: {} }; // palette null = the theme's default
 /* ---- colour maths ---- */
 function hex2rgb(h) { h = String(h || '').replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&'); var n = parseInt(h.slice(0, 6), 16); return isNaN(n) ? [0, 0, 0] : [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function rgb2hex(c) { return '#' + c.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
@@ -96,12 +96,13 @@ function compute(L) {
     '--fg-rgb': fg, '--line': 'rgba(' + fg + ',' + (dark ? '.08' : '.10') + ')', '--panel': 'rgba(' + fg + ',.055)', '--panel2': 'rgba(' + fg + ',.085)',
     '--acc': acc, '--acc-rgb': hex2rgb(acc).join(','), '--acc-text': accText, '--acc2': acc2, '--btn1': b1.fill, '--btn2': b2fill, '--on-acc': b1.on,
     '--a1': acc, '--a2': accText, '--grad': 'linear-gradient(135deg,' + acc + ' 0%,' + acc2 + ' 100%)', '--grad-btn': 'linear-gradient(135deg,' + b1.fill + ',' + b2fill + ')',
-    '--glow': String(T.glow), '--sheet': dark ? mix(T.surface, T.bg, 0.35) : T.surface, '--tabbar': dark ? 'rgba(' + hex2rgb(T.surface).join(',') + ',.82)' : 'rgba(255,255,255,.86)',
+    '--glow': String(T.glow), '--sheet': dark ? mix(T.surface, T.bg, 0.35) : T.surface, '--tabbar': dark ? 'rgba(' + hex2rgb(T.surface).join(',') + ',.92)' : 'rgba(255,255,255,.93)',
     '--toast': dark ? 'rgba(' + hex2rgb(T.surface2).join(',') + ',.96)' : 'rgba(255,255,255,.97)', '--shadow': dark ? 'rgba(0,0,0,.45)' : 'rgba(15,23,42,.12)',
     '--s-good': S.good, '--s-gold': S.gold, '--s-warn': S.warn, '--s-bad': S.bad, '--s-cyan': S.cyan, '--s-violet': S.violet, '--s-water': S.water,
     '--k-kcal': S.kKcal, '--k-pro': S.kPro, '--k-carb': S.kCarb, '--k-fat': S.kFat,
   };
-  ['--s-good', '--s-gold', '--s-warn', '--s-bad', '--s-cyan', '--s-violet', '--s-water', '--k-kcal', '--k-pro', '--k-carb', '--k-fat'].forEach(function (k) { v[k] = ensure(v[k], [T.bg, T.surface, T.surface2], 4.6); });
+  // light themes get extra margin for state-tinted panels and glass
+  ['--s-good', '--s-gold', '--s-warn', '--s-bad', '--s-cyan', '--s-violet', '--s-water', '--k-kcal', '--k-pro', '--k-carb', '--k-fat'].forEach(function (k) { v[k] = ensure(v[k], [T.bg, T.surface, T.surface2], T.mode === 'light' ? 5.2 : 4.6); });
   TILE_KEYS.forEach(function (tk) { v['--t-' + tk[0]] = tiles[tk[0]].fill; v['--t-' + tk[0] + '-on'] = tiles[tk[0]].on;
     /* chip/button wash that moves AWAY from the ink, so text on in-tile chips keeps (and gains) contrast */
     v['--t-' + tk[0] + '-sh'] = contrast(tiles[tk[0]].on, '#000') > 10 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.36)'; });

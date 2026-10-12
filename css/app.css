@@ -108,7 +108,7 @@ input,select,textarea{font-size:16px}
 .addmeal{width:100%;margin-top:6px;padding:10px;border-radius:13px;border:1px dashed rgba(255,255,255,.18);color:var(--mut);font-weight:600;font-size:13px}
 
 /* tab bar */
-.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + 10px);width:min(530px,calc(100% - 24px));display:grid;grid-template-columns:3fr 3fr auto 2fr 2fr 2fr;align-items:center;padding:8px;border-radius:26px;background:rgba(18,20,36,.72);border:1px solid var(--line);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);box-shadow:0 18px 40px rgba(0,0,0,.45);z-index:40}
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + 10px);width:min(530px,calc(100% - 16px));display:grid;grid-template-columns:minmax(0,62fr) minmax(0,82fr) auto minmax(0,44fr) minmax(0,54fr) minmax(0,46fr);align-items:center;padding:8px;border-radius:26px;background:rgba(18,20,36,.72);border:1px solid var(--line);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);box-shadow:0 18px 40px rgba(0,0,0,.45);z-index:40}
 .tab{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--dim);padding:6px 0;transition:color .2s}
 .tab svg{width:23px;height:23px}
 .tab.on{color:var(--text)}
@@ -203,12 +203,12 @@ select.inp option{background:#151831}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
 /* toast + confetti */
-#toasts{position:fixed;top:calc(var(--sat) + 10px);left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;width:min(420px,calc(100% - 24px));pointer-events:none}
+#toasts{position:fixed;bottom:calc(var(--sab) + 96px);left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;width:min(420px,calc(100% - 24px));pointer-events:none}
 .toast{background:rgba(22,24,44,.92);border:1px solid rgba(255,209,102,.35);border-radius:18px;padding:12px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 14px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:pop .45s cubic-bezier(.2,.9,.3,1.2) both}
 .toast .e{font-size:26px}
 .toast b{display:block;font-size:14px}
 .toast span{font-size:12px;color:var(--mut)}
-.toast.out{transition:.3s;opacity:0;transform:translateY(-10px)}
+.toast.out{transition:.3s;opacity:0;transform:translateY(10px)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:89}
 .scan{position:relative;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:52vh;width:100%}
 .scan video{width:100%;height:100%;object-fit:cover}

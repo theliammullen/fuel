@@ -64,25 +64,27 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
   }, label);
   /* pixel contrast audit for textures, glass and blur: hide all text, screenshot, then compare each text run's colour
      against the 2nd/98th-percentile luminance of the real pixels behind it (worst case over wood grain / blurred content) */
-  const pixelAudit = async label => {
+  const pixelAudit = async (label, quiet) => {
     const items = await p.evaluate(() => {
       const parse = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const a = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [a[0], a[1], a[2], a[3] == null ? 1 : a[3]]; };
-      // floating bottom bar + FAB: text scrolling *under* them or through their drop shadow mid-scroll is excluded (not a reading position)
-      const tb = document.getElementById('tabbar'), fb = document.getElementById('fab'), barTop = tb && !tb.closest('.hidden') ? tb.getBoundingClientRect().top - 6 : innerHeight, fr = fb ? fb.getBoundingClientRect() : null;
-      const underBar = (x, y, x2, y2) => y2 > barTop || (fr && x2 > fr.left - 14 && x < fr.right + 14 && y2 > fr.top - 14 && !document.querySelector('.sheet.on'));
+      // text behind an open sheet is seen through the modal scrim: composite the ink through it (the screenshot already has the scrim over the background)
+      const bd = document.querySelector('.backdrop.on'); let scrim = null;
+      if (bd) { const sc = parse(getComputedStyle(bd).backgroundColor); if (sc) scrim = [sc[0], sc[1], sc[2], sc[3] * +getComputedStyle(bd).opacity]; }
       const out = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       while (w.nextNode()) { const n = w.currentNode, txt = n.textContent.trim(); if (!txt) continue; const el = n.parentElement; if (!el || el.closest('svg,#confetti,.sw,.lay,.acc,.tcust,select,.hidden')) continue;
-        if (document.querySelector('.sheet.on') && !el.closest('.sheet')) continue; // behind a modal scrim
-        if (/^[\p{Extended_Pictographic}\s●★✦✓✎⋯+▦·•]+$/u.test(txt)) continue;
+        if (/^[\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0F\u200D\s●★✦✓✎⋯+▦·•]+$/u.test(txt)) continue;
         const cs = getComputedStyle(el); if (cs.visibility === 'hidden') continue; const c = parse(cs.color); if (!c || c[3] === 0) continue;
         let op = 1; for (let e = el; e; e = e.parentElement) op *= +getComputedStyle(e).opacity; if (op < 0.05) continue;
         const r = document.createRange(); r.selectNodeContents(n); const rects = [...r.getClientRects()];
         for (const b of rects.slice(0, 2)) { const x = Math.max(0, b.left), y = Math.max(0, b.top), x2 = Math.min(innerWidth, b.right), y2 = Math.min(innerHeight, b.bottom); if (x2 - x < 4 || y2 - y < 6) continue;
           // skip text covered by another layer (e.g. content under the bottom bar)
-          if (!el.closest("#tabbar") && underBar(x, y, x2, y2)) continue;
-          const mine = (px, py) => { const t = document.elementFromPoint(px, py); return t && (t === el || el.contains(t) || t.contains(el) || t.closest('.tl,.card,.sheet,button') === el.closest('.tl,.card,.sheet,button')); };
-          if (![[(x + x2) / 2, (y + y2) / 2], [x + 1, y + 1], [x2 - 1, y + 1], [x + 1, y2 - 1], [x2 - 1, y2 - 1]].every(q => mine(...q))) continue; // partly under the bar/header
-          out.push({ x, y, w: x2 - x, h: y2 - y, c: [c[0], c[1], c[2], c[3] * op], large: parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && +cs.fontWeight >= 700), t: txt.slice(0, 22) }); } }
+          const fabR = (document.getElementById('fab') || document.body).getBoundingClientRect(), ring = 6; // the + button's brass ring is a box-shadow spread: paints over text but isn't hit-testable
+          const barR = (document.getElementById('tabbar') || document.body).getBoundingClientRect();
+          const underRing = (px, py) => !document.querySelector('.sheet.on') && !el.closest('#tabbar') && ((px > fabR.left - ring && px < fabR.right + ring && py > fabR.top - ring && py < fabR.bottom + ring) || (px > barR.left - 2 && px < barR.right + 2 && py > barR.top - 2 && py < barR.bottom + 2));
+          const mine = (px, py) => { if (underRing(px, py)) return false; const t = document.elementFromPoint(px, py); return t && (t === el || el.contains(t) || t.contains(el) || t.closest('.tl,.card,.sheet,button') === el.closest('.tl,.card,.sheet,button')); };
+          const pts = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 7; j++) pts.push([x + 1 + (x2 - x - 2) * j / 6, y + 1 + (y2 - y - 2) * i / 2]);
+          if (!pts.every(q => mine(...q))) continue; // partly covered by the bar / + button / header (incl. their rounded corners): not readable there
+          out.push({ x, y, w: x2 - x, h: y2 - y, c: [c[0], c[1], c[2], c[3] * op], large: parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && +cs.fontWeight >= 700), t: txt.slice(0, 22), scrim: scrim && !el.closest('.sheet') ? scrim : null }); } }
       return out;
     });
     await p.evaluate(() => { const st = document.createElement('style'); st.id = '__hidetext'; st.textContent = '*,*::before,*::after{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;transition:none!important;caret-color:transparent!important}.score{background:none!important}'; document.head.appendChild(st); });
@@ -96,18 +98,25 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
       for (const it of items) { const d = g.getImageData(Math.round(it.x * k), Math.round(it.y * k), Math.max(1, Math.round(it.w * k)), Math.max(1, Math.round(it.h * k))).data; const ls = [], cols = [];
         for (let i = 0; i < d.length; i += 4 * 3) { ls.push(L(d[i], d[i + 1], d[i + 2])); cols.push([d[i], d[i + 1], d[i + 2]]); }
         const idx = ls.map((v, i) => i).sort((a, b) => ls[a] - ls[b]); const lo = cols[idx[Math.floor(idx.length * .02)]], hi = cols[idx[Math.floor(idx.length * .98)]];
-        const worst = [lo, hi].map(bg => { const f = [0, 1, 2].map(i => it.c[i] * it.c[3] + bg[i] * (1 - it.c[3])); const a = L(...f), b = L(...bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); });
+        const worst = [lo, hi].map(bg => { let f = [0, 1, 2].map(i => it.c[i] * it.c[3] + bg[i] * (1 - it.c[3])); if (it.scrim) f = f.map((v, i) => it.scrim[i] * it.scrim[3] + v * (1 - it.scrim[3])); const a = L(...f), b = L(...bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); });
         const cr = Math.min(...worst); if (cr < (it.large ? 3 : 4.5)) out.push(it.t + ' ' + cr.toFixed(2) + (window.__pxdbg ? ` @${it.x|0},${it.y|0} ${it.w|0}x${it.h|0} fg${it.c.map(v => +(+v).toFixed(2))} lo${lo} hi${hi}` : '')); }
       return [...new Set(out)];
     }, { b64, items });
-    console.log(`[pixels ${label}] text runs: ${items.length}; contrast fails: ${fails.length}${fails.length ? ' → ' + fails.slice(0, 10).join(' | ') : ''}`);
+    if (!quiet || fails.length) console.log(`[pixels ${label}] text runs: ${items.length}; contrast fails: ${fails.length}${fails.length ? ' → ' + fails.slice(0, 10).join(' | ') : ''}`);
     return fails.length;
   };
+  const sweep = async (label, step = 110) => { if (process.env.SWEEP && !new RegExp(process.env.SWEEP).test(label)) return 0; const max = await p.evaluate(() => document.documentElement.scrollHeight - innerHeight); let n = 0, runs = 0;
+    for (let y = 0; y <= max + step - 1; y += step) { const yy = Math.min(y, max); await p.evaluate(y => window.scrollTo(0, y), yy); await p.waitForTimeout(260); n += await pixelAudit(`${label} @${yy}`, true); runs++; }
+    await p.evaluate(() => window.scrollTo(0, 0)); console.log(`[sweep ${label}] ${runs} scroll positions, contrast fails: ${n}`); return n; };
   const taps = async label => { const r = await audit(label); console.log(`[${label}] tap<44: ${r.small.length}${r.small.length ? ' → ' + r.small.slice(0, 8).join(' | ') : ''} (contrast: see pixel audit)`); return r.small.length; };
+  const smallInputs = async label => { const r = await p.$$eval('input:not([type=hidden]):not([type=range]):not([type=file]):not([type=color]):not([type=checkbox]):not([type=radio]),select,textarea', els => els.filter(e => e.getClientRects().length && parseFloat(getComputedStyle(e).fontSize) < 16).map(e => (e.id || e.className || e.tagName) + ' ' + getComputedStyle(e).fontSize));
+    if (r.length) console.log(`[${label}] form controls < 16px: ${r.join(' | ')}`); return r.length; };
   const report = r => { console.log(`[${r.label}] tap<44: ${r.small.length}${r.small.length ? ' → ' + r.small.slice(0, 8).join(' | ') : ''}; contrast fails: ${r.fails.length}${r.fails.length ? ' → ' + r.fails.slice(0, 8).join(' | ') : ''}`); return r.small.length + r.fails.length; };
   let issues = 0;
-  // default (tiles, midnight, vivid)
-  await shot('tiles-default-top'); issues += report(await audit('tiles midnight'));
+  // default for a fresh install / no saved look: Kitchen on Auto (context is colorScheme dark → Kitchen Dark), Kitchen Vivid tiles, Tiles layout
+  const def = await p.evaluate(() => { const h = document.documentElement.dataset; return [h.theme, h.family, h.layout, FuelTheme.paletteId(FuelTheme.load())].join('|'); });
+  console.log('default look (no fuel.look):', def); if (def !== 'kitchen-dark|kitchen|tiles|kitchen') issues++;
+  await shot('tiles-default-top'); issues += await taps('tiles default (kitchen auto)'); issues += await pixelAudit('tiles default (kitchen auto)');
   await shot('tiles-default-full', true);
   await p.evaluate(() => window.scrollTo(0, 640)); await shot('tiles-default-scrolled'); await p.evaluate(() => window.scrollTo(0, 0));
   if (!QUICK) {
@@ -123,14 +132,13 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     for (const m of ['light', 'dark']) {
       await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: 'tiles' }); await p.reload(); await shot('kitchen-' + m + '-tiles');
       issues += await taps('kitchen ' + m + ' tiles');
-      for (const y of [0, 520, 1100, 99999]) { await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(500); issues += await pixelAudit('kitchen ' + m + ' tiles @' + y); }
+      issues += await sweep('kitchen ' + m + ' tiles');
       await p.evaluate(() => window.scrollTo(0, 0));
       for (const lay of ['rings', 'cards', 'compact']) { await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: lay }); await p.reload(); await p.waitForTimeout(1300); if (lay === 'cards' && m === 'dark') { await p.evaluate(() => window.scrollTo(0, 0)); await shot('kitchen-dark-cards'); }
-        issues += await taps(`kitchen ${m} ${lay}`); for (const y of [0, 700]) { await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(400); issues += await pixelAudit(`kitchen ${m} ${lay} @${y}`); } }
+        issues += await taps(`kitchen ${m} ${lay}`); issues += await sweep(`kitchen ${m} ${lay}`, 150); }
       await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1200);
-      await p.click('#tabbar [data-tab=coach]'); await p.waitForTimeout(1200); await shot('kitchen-' + m + '-coach'); issues += await pixelAudit('kitchen ' + m + ' coach'); issues += await taps('kitchen ' + m + ' coach');
-      await p.evaluate(() => window.scrollTo(0, 900)); await p.waitForTimeout(400); issues += await pixelAudit('kitchen ' + m + ' coach @900');
-      for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`#tabbar [data-tab=${tab}]`); await p.waitForTimeout(900); issues += await pixelAudit(`kitchen ${m} ${tab}`); }
+      await p.click('#tabbar [data-tab=coach]'); await p.waitForTimeout(1200); await shot('kitchen-' + m + '-coach'); issues += await taps('kitchen ' + m + ' coach'); issues += await sweep('kitchen ' + m + ' coach');
+      for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`#tabbar [data-tab=${tab}]`); await p.waitForTimeout(900); issues += await sweep(`kitchen ${m} ${tab}`); }
       await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
       await p.click('#fab'); await p.waitForTimeout(700); issues += await pixelAudit(`kitchen ${m} + sheet (glass over tiles)`); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
     }
@@ -151,7 +159,7 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     await setLook(p, { theme: 'midnight', layout: 'cards', density: 'compact' }); await p.reload(); await p.waitForTimeout(900); issues += report(await audit('compact density cards'));
     // Settings › Appearance (and switching instantly from it)
     await setLook(p, { theme: 'midnight', layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1200);
-    await p.click('[data-act=profile]'); await shot('settings-appearance'); issues += report(await audit('settings'));
+    await p.click('[data-act=profile]'); await shot('settings-appearance'); issues += report(await audit('settings')); issues += await smallInputs('settings');
     await p.click('.sheet [data-look-theme=daylight]'); await p.waitForTimeout(400);
     console.log('instant theme ->', await p.evaluate(() => document.documentElement.dataset.theme)); await shot('settings-appearance-daylight');
     await p.click('.sheet [data-look-layout=rings]'); await p.waitForTimeout(300);
@@ -164,7 +172,7 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     // back behaviour: history back closes the sheet
     await p.goBack(); await p.waitForTimeout(600); console.log('sheets after back:', await p.$$eval('.sheet', x => x.length), 'url still app:', p.url());
     // palette button → appearance sheet; Escape closes
-    await p.click('[data-act=appearance]'); await p.waitForTimeout(500); await shot('appearance-sheet'); issues += report(await audit('appearance sheet'));
+    await p.click('[data-act=appearance]'); await p.waitForTimeout(500); await shot('appearance-sheet'); issues += report(await audit('appearance sheet')); issues += await smallInputs('appearance sheet');
     await p.keyboard.press('Escape'); await p.waitForTimeout(600); console.log('sheets after Esc:', await p.$$eval('.sheet', x => x.length));
     // flows: FAB hub → water, My item one-tap, voice log, label
     await p.click('#fab'); await p.waitForTimeout(600); await shot('quick-log-hub'); issues += report(await audit('fab hub'));
@@ -173,10 +181,39 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     await p.click('#app .qi >> nth=0'); await p.waitForTimeout(900);
     const n1 = await p.evaluate(() => { const S = __fuel.S(); return S.days[Object.keys(S.days).sort().pop()].entries.length; });
     console.log('one-tap My item logged:', n1 === n0 + 1); await shot('tiles-after-one-tap');
+    // Undo toast: above the tab bar, never over an open sheet's header / close button, and up for ~8 s
+    const ov = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const tr = await p.evaluate(() => { const r = e => e && e.getBoundingClientRect().toJSON(); return { t: r(document.querySelector('.toast')), bar: r(document.getElementById('tabbar')) }; });
+    const toastAboveBar = !!tr.t && tr.t.bottom <= tr.bar.top; console.log('undo toast above tab bar:', toastAboveBar); if (!toastAboveBar) issues++;
+    await p.click('#fab'); await p.waitForTimeout(600);
+    await p.evaluate(() => __fuel.quickLog(__fuel.usdaItem(__fuel.DB().foods.find(f => /^Bananas, raw/.test(f.name))))); const tToast = Date.now(); await p.waitForTimeout(400);
+    const ts = await p.evaluate(() => { const r = e => e && e.getBoundingClientRect().toJSON(); const sh = document.querySelector('.sheet.on'); return { t: r([...document.querySelectorAll('.toast')].pop()), x: r(sh && sh.querySelector('[data-close]')), h: r(sh && (sh.querySelector('.sh-head,.shead,h2,h3') || sh.firstElementChild)), bar: r(document.getElementById('tabbar')) }; });
+    const clear = !!ts.t && !ov(ts.t, ts.x) && !ov(ts.t, ts.h) && ts.t.bottom <= ts.bar.top; console.log('toast clear of sheet header/X and tab bar:', clear); if (!clear) issues++;
+    await shot('toast-over-sheet');
+    await p.waitForTimeout(Math.max(0, 7300 - (Date.now() - tToast))); const at7 = await p.$$eval('.toast .tbtn', x => x.length); await p.waitForTimeout(Math.max(0, 9300 - (Date.now() - tToast))); const at9 = await p.$$eval('.toast .tbtn', x => x.length);
+    console.log('undo toast visible at ~7.5 s / gone at ~9.5 s:', at7 > 0, at9 === 0); if (!(at7 > 0 && at9 === 0)) issues++;
+    await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+    // tab labels have room (≥ 4 px each side), viewport allows pinch-zoom, every form control ≥ 16 px
+    const tabs = await p.$$eval('#tabbar .tab', ts => ts.map(t => { const s = t.querySelector('span') || t; const r = document.createRange(); r.selectNodeContents(s); return { w: t.getBoundingClientRect().width, lw: r.getBoundingClientRect().width, n: t.textContent.trim() }; }));
+    const tight = tabs.filter(t => t.lw > t.w - 8 || t.w < 44); console.log('tab widths:', tabs.map(t => t.n + ' ' + t.w.toFixed(0) + '/' + t.lw.toFixed(0)).join(', '), tight.length ? 'TIGHT' : 'ok'); issues += tight.length;
+    const vp = await p.$eval('meta[name=viewport]', m => m.content); const zoomOk = !/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(\D|$)/.test(vp); console.log('viewport allows pinch-zoom:', zoomOk, vp); if (!zoomOk) issues++;
     await p.click('#app [data-act=voice]'); await p.waitForTimeout(500); await p.fill('#vtxt', '2 eggs and a black coffee'); await p.click('#vgo'); await p.waitForTimeout(1500);
-    await shot('voice-review'); issues += report(await audit('review')); await p.click('#rapprove'); await p.waitForTimeout(1200);
-    await p.click('#app [data-act=label]'); await p.waitForTimeout(500); await p.click('#lex'); await p.click('#lgo'); await p.waitForTimeout(800); await shot('label-review'); await p.click('.sheet [data-close]'); await p.waitForTimeout(500);
+    await shot('voice-review'); issues += report(await audit('review')); issues += await smallInputs('review'); await p.click('#rapprove'); await p.waitForTimeout(1200);
+    await p.click('#app [data-act=label]'); await p.waitForTimeout(500); await p.click('#lex'); await p.click('#lgo'); await p.waitForTimeout(800); await shot('label-review'); issues += await smallInputs('label review'); await p.click('.sheet [data-close]'); await p.waitForTimeout(500);
     await p.click('#app [data-coach-pick="0"]'); await p.waitForTimeout(700); console.log('coach tile pick opens review:', !!(await p.$('.sheet.on #rapprove'))); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+    // Tiles Coach tile carries Coach's supplement picks (≤ 2, 💊) and the goal-above-UL note (the full Coach card is hidden in Tiles)
+    const ct = await p.evaluate(() => { const t = document.querySelector('#app .tl.c-coach'); return t && { supps: [...t.querySelectorAll('.tsupp')].map(e => e.textContent.trim()), badge: [...t.querySelectorAll('.tsupp .sb')].every(b => b.textContent.includes('💊')), ul: (t.querySelector('.tul') || {}).textContent || '', cardHidden: getComputedStyle(document.querySelector('#app .co-card') || document.body).display === 'none' || !document.querySelector('#app .co-card') }; });
+    const ctOk = !!ct && ct.supps.length >= 1 && ct.supps.length <= 2 && ct.badge && /Vitamin D.*above the general upper limit/.test(ct.ul);
+    console.log('coach tile supplements + UL note:', ctOk, JSON.stringify(ct)); if (!ctOk) issues++;
+    for (const th of [['midnight'], ['daylight'], ['kitchen', 'light'], ['kitchen', 'dark'], ['paper'], ['oled']]) {
+      await setLook(p, { theme: th[0], kitchenMode: th[1], layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1300);
+      await p.evaluate(() => { const e = document.querySelector('#app .tl.c-coach'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 140); }); await p.waitForTimeout(500);
+      if (th[0] === 'midnight') await shot('tiles-coach-supplements');
+      issues += await pixelAudit('coach tile supplements ' + th.join(' ')); issues += await taps('coach tile ' + th.join(' ')); // scrolled: the bar is over tiles, so contrast comes from the pixel audit
+    }
+    await setLook(p, { theme: 'midnight', layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1300);
+    await p.click('#app .tl.c-coach .tsupp >> nth=0'); await p.waitForTimeout(800); const sr = await p.evaluate(() => !!document.querySelector('.sheet.on #rapprove') && /vitamin d|d3|creatine/i.test(document.querySelector('.sheet.on').textContent));
+    console.log('coach tile supplement opens its review:', sr); if (!sr) issues++; await p.click('.sheet.on [data-close]'); await p.waitForTimeout(600);
     await p.click('#app [data-coach="open"]'); await p.waitForTimeout(900); console.log('coach tile opens coach view; tab on:', await p.$eval('#tabbar [data-tab=coach]', x => x.classList.contains('on'))); await shot('coach-view-midnight'); issues += report(await audit('coach view'));
     await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
     for (const tab of ['nutrients', 'progress', 'awards', 'coach']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab)); }
@@ -192,6 +229,12 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     await p2.evaluate(() => localStorage.setItem('fuel.look', JSON.stringify({ theme: 'paper' })));
     await p2.addInitScript(() => document.addEventListener('DOMContentLoaded', () => { window.__firstTheme = document.documentElement.dataset.theme + '|' + getComputedStyle(document.body).backgroundColor; }));
     await p2.reload(); await p2.waitForTimeout(500); console.log('theme at first paint:', await p2.evaluate(() => window.__firstTheme));
+    // default Kitchen applied before first paint (no flash) and follows iOS light/dark when nothing is saved
+    for (const cs of ['light', 'dark']) { const c3 = await b.newContext({ viewport: { width: 393, height: 852 }, colorScheme: cs }); const p3 = await c3.newPage();
+      p3.on('pageerror', e => errs.push('pageerror ' + e.message)); p3.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
+      await p3.addInitScript(() => document.addEventListener('DOMContentLoaded', () => { window.__first = document.documentElement.dataset.theme + '|' + getComputedStyle(document.body).backgroundColor; }));
+      await p3.goto(BASE); await p3.waitForTimeout(600); const f = await p3.evaluate(() => window.__first);
+      const okf = String(f).startsWith('kitchen-' + cs + '|'); console.log(`default at first paint (${cs} scheme, nothing saved):`, f, okf); if (!okf) issues++; await c3.close(); }
   }
   console.log('ISSUES', issues, 'CONSOLE ERRORS', errs.length, errs.slice(0, 10));
   await b.close();

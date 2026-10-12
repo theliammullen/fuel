@@ -420,7 +420,7 @@ function toast(ic, title, sub, opt) {
   const kill = () => { el.classList.add('out'); setTimeout(() => el.remove(), 350); };
   if (opt && opt.action) $('.tbtn', el).onclick = e => { e.stopPropagation(); kill(); opt.onAction(); };
   $('#toasts').appendChild(el);
-  setTimeout(kill, opt && opt.action ? 6000 : 3200);
+  setTimeout(kill, opt && opt.action ? 8000 : 3200);
 }
 function haptic() { try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
 /* confetti */
@@ -603,11 +603,15 @@ function trainingCard(d) {
 /* Coach entry tile (js/coach.js owns the view; we only show its top pick + open it) */
 function coachTile() {
   if (!window.FuelCoach) return '';
-  let top = null, M = null;
-  try { if (DB) { const r = FuelCoach.suggest(CUR, 3); M = r.M; top = r.picks && r.picks[0]; } } catch (e) { top = null; }
+  let top = null, M = null, supps = [], base = 0, ulKeys = [];
+  try { if (DB) { const r = FuelCoach.suggest(CUR, 3); M = r.M; top = r.picks && r.picks[0]; base = (r.picks || []).length;   // same call as Coach's todayCard → same PICKS indices
+    supps = (r.supps || []).slice(0, 2); ulKeys = FuelCoach.aboveUL ? FuelCoach.aboveUL(M.T).filter(k => supps.some(p => p.forK === k)) : []; } } catch (e) { top = null; supps = []; ulKeys = []; }
+  const amt = (k, v) => { const n = BY[k]; return fmt(v, n.dp || 0) + ' ' + n.unit + (n.iu ? ' / ' + fmt(v * n.iu) + ' IU' : ''); };
+  const suppHTML = supps.map((p, j) => `<button class="tsupp" data-coach-pick="${base + j}" aria-label="Review and log ${esc(p.c.nm)}"><span class="sb">💊 Supplement</span><span class="sn">${esc(p.c.nm)}<small>${esc(p.label || '')} · ${amt(p.forK, p.n[p.forK] || 0)} ${esc(BY[p.forK].short)}${p.c.own ? ' · yours' : ''}</small></span><span class="sp" aria-hidden="true">＋</span></button>`).join('');
+  const ulHTML = ulKeys.length ? `<div class="tul">ℹ️ ${ulKeys.map(k => `${esc(BY[k].name)}: your goal (${amt(k, M.T[k].goal)}) is above the general upper limit (${amt(k, M.T[k].ul)})`).join('; ')} — a goal this high is best followed with a clinician’s guidance.</div>` : '';
   return `<div class="tl w2 c-coach"><button class="lb" data-coach="open" style="min-height:44px;color:inherit;text-align:left">🧭 What to eat next<span class="r">Coach ›</span></button>
     ${top ? `<div class="pick"><div class="pn">${esc(String(top.c.nm).split(',').slice(0, 2).join(','))}<span>${esc(top.label || '')}${M && M.kcalLeft > 0 ? ' · ' + fmt(M.kcalLeft) + ' kcal left today' : ''}</span></div><button class="tb" data-coach-pick="0" aria-label="Review and log the top pick">+ Log</button></div>`
-      : `<div class="emptyt">${DB ? 'Ideas that close today’s gaps within your limits.' : 'Loading food ideas…'}</div>`}</div>`;
+      : `<div class="emptyt">${DB ? 'Ideas that close today’s gaps within your limits.' : 'Loading food ideas…'}</div>`}${suppHTML ? `<div class="tsupps">${suppHTML}</div>` : ''}${ulHTML}</div>`;
 }
 /* Tiles: flat colour blocks, big numbers, one-tap actions */
 function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain }) {
@@ -1741,7 +1745,7 @@ function openProfile() {
     <input type="file" id="impf" accept="application/json,.json" class="hidden">
     <div class="tiny mut" style="margin:10px 0">Everything lives on this phone only. Export regularly (e.g. save to Files/iCloud). Food data: ${DB ? fmt(DB.foods.length) + ' foods — ' : ''}USDA FoodData Central (Foundation, SR Legacy, FNDDS), Health Canada CNF 2015, Open Food Facts. No paid services, no accounts, no API keys.</div>
     <button class="btn danger block" id="wipe">Erase all data</button></div>
-   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.4.2 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
+   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.4.3 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
   const rec = openSheet('Profile & settings', html, { full: true, onClose: () => { invalidate(); render(); } });
   const sh = rec.sh;
   if (window.FuelLook) FuelLook.bind(sh, () => render());

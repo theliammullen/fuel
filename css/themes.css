@@ -107,7 +107,7 @@ button:focus:not(:focus-visible){outline:none}
 
 /* ---------- Today: Tiles (default) ---------- */
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.tl{--on:var(--text);--sh:color-mix(in srgb,var(--on) 14%,transparent);position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
+.tl{--on:var(--text);--sh:rgba(128,128,128,.16);position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
   min-height:96px;padding:14px;border-radius:20px;background:var(--surface);color:var(--on);overflow:hidden;
   transition:transform .18s cubic-bezier(.3,1.4,.5,1),filter .18s,box-shadow .18s;-webkit-user-select:none;user-select:none}
 .tl.w2{grid-column:span 2}
@@ -141,6 +141,15 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on);--sh:var(--t-micro-sh)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on);--sh:var(--t-score-sh)}
 .tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on);--sh:var(--t-focus-sh)}
 .tl.c-coach{background:var(--t-coach);--on:var(--t-coach-on);--sh:var(--t-coach-sh)}
+/* Coach tile: supplement picks (💊) + goal-above-UL note, so Tiles carries everything the hidden Coach card has */
+.tl .tsupps{width:100%;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.tl .tsupp{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 10px;border-radius:14px;background:var(--sh);color:var(--on);text-align:left}
+.tl .tsupp:active{filter:brightness(.92)}
+.tl .tsupp .sb{flex:none;font-size:11px;font-weight:800;letter-spacing:.02em;padding:4px 7px;border-radius:99px;background:var(--on);color:var(--t-coach)}
+.tl .tsupp .sn{flex:1;min-width:0;font-weight:750;font-size:14px;line-height:1.25}
+.tl .tsupp .sn small{display:block;font-weight:600;font-size:12px}
+.tl .tsupp .sp{flex:none;font-size:18px;font-weight:800}
+.tl .tul{margin-top:10px;font-size:12px;font-weight:600;line-height:1.35;padding:8px 10px;border-radius:12px;background:var(--sh);color:var(--on)}
 /* Tiles layout: the Coach tile is the entry point, so the full Coach card (js/coach.js) is not repeated below the grid */
 [data-layout=tiles] #app .co-card{display:none}
 .tl .pick{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px}
@@ -242,24 +251,31 @@ summary{min-height:44px;padding-top:12px!important;padding-bottom:12px!important
 [data-family=kitchen] .sheet{background:var(--glass-strong);-webkit-backdrop-filter:blur(26px) saturate(150%);backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 var(--glass-hi),0 -16px 44px var(--counter-shadow)}
 [data-family=kitchen] .sheet .grab{background:var(--wood) 0 0/256px 128px;height:6px;width:46px}
 [data-family=kitchen] .toast{background:var(--glass-strong);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 36px var(--counter-shadow)}
-[data-family=kitchen] .stat3>div,[data-family=kitchen] .macro4>div,[data-family=kitchen] .tiers>div,[data-family=kitchen] .note,[data-family=kitchen] .bdg,[data-family=kitchen] .mcard,[data-family=kitchen] .qi,[data-family=kitchen] .tile{background:color-mix(in srgb,var(--surface2) 90%,transparent)}
+[data-family=kitchen] .stat3>div,[data-family=kitchen] .macro4>div,[data-family=kitchen] .tiers>div,[data-family=kitchen] .note,[data-family=kitchen] .bdg,[data-family=kitchen] .mcard,[data-family=kitchen] .qi,[data-family=kitchen] .tile{background:var(--surface2);background:color-mix(in srgb,var(--surface2) 90%,transparent)}
+@supports (color:color-mix(in srgb,red,blue)){.tl:not([class*=c-]){--sh:color-mix(in srgb,var(--on) 14%,transparent)}}
+/* light frosted scrim: the page behind an open sheet keeps AA contrast */
+[data-family=kitchen] .backdrop{background:rgba(247,242,233,.16);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+[data-theme=kitchen-dark] .backdrop{background:rgba(12,10,8,.2)}
 /* wood bottom bar with a brass top rule */
-[data-family=kitchen] .tabbar{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;box-shadow:inset 0 1px 0 var(--brass-hi),inset 0 2px 0 rgba(255,255,255,.12),0 8px 18px var(--counter-shadow)}
+[data-family=kitchen] .tabbar{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;box-shadow:inset 0 1px 0 var(--brass-hi),inset 0 2px 0 rgba(255,255,255,.12),0 2px 6px var(--counter-shadow)}
 [data-family=kitchen] .tab{color:var(--wood-mut)}
 [data-family=kitchen] .tab.on{color:var(--wood-ink)}
 [data-family=kitchen] .tab.on svg{color:var(--wood-ink);filter:drop-shadow(0 0 6px rgba(var(--acc-rgb),.55))}
 [data-family=kitchen] .tab{position:relative}
 [data-family=kitchen] .tab.on::after{content:"";position:absolute;bottom:0;left:50%;width:18px;height:3px;margin-left:-9px;border-radius:3px;background:var(--acc)}
-[data-family=kitchen] .fab{box-shadow:0 0 0 3px var(--brass-hi),0 0 0 5px rgba(0,0,0,.18),0 12px 26px rgba(var(--acc-rgb),.45)}
+[data-family=kitchen] .fab{box-shadow:0 0 0 3px var(--brass-hi),0 0 0 4px rgba(0,0,0,.12),0 8px 14px rgba(var(--acc-rgb),.28)}
 /* tiles: vivid colour blocks sitting on a wood shelf lip */
 [data-family=kitchen] .tl:not(.neutral)::before{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--wood) 0 0/256px 128px;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);pointer-events:none}
 [data-family=kitchen] .tl:not(.neutral){padding-bottom:18px;box-shadow:0 8px 18px var(--counter-shadow),inset 0 1px 0 rgba(255,255,255,.22)}
 [data-family=kitchen] .tl.neutral{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;color:var(--wood-ink);--on:var(--wood-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 16px var(--counter-shadow)}
 /* controls */
-[data-family=kitchen] .btn:not(.pri):not(.danger),[data-family=kitchen] .chip:not(.on),[data-family=kitchen] .seg{background:color-mix(in srgb,var(--surface2) 78%,transparent)}
-[data-family=kitchen] .addmeal{border-color:color-mix(in srgb,var(--brass) 55%,transparent)}
+[data-family=kitchen] .btn:not(.pri):not(.danger),[data-family=kitchen] .chip:not(.on),[data-family=kitchen] .seg{background:var(--surface2);background:color-mix(in srgb,var(--surface2) 78%,transparent)}
+[data-family=kitchen] .addmeal{border-color:var(--brass);border-color:color-mix(in srgb,var(--brass) 55%,transparent)}
 [data-family=kitchen] .lvl .badge{box-shadow:0 0 0 2px var(--brass-hi)}
 /* solid fallback where frosted glass isn't supported */
+/* Kitchen Light: no drop shadow under the floating bar / + button, so text scrolling through the strip below the bar keeps AA */
+[data-theme=kitchen-light] .tabbar{box-shadow:inset 0 1px 0 var(--brass-hi),inset 0 2px 0 rgba(255,255,255,.12),0 0 0 1px rgba(120,90,50,.2)}
+[data-theme=kitchen-light] .fab{box-shadow:0 0 0 3px var(--brass-hi),0 0 0 4px rgba(0,0,0,.1)}
 @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
   [data-family=kitchen] .card,[data-family=kitchen] .datebar .d,[data-family=kitchen] .iconbtn{background:var(--surface)}
   [data-family=kitchen] .sheet,[data-family=kitchen] .toast{background:var(--surface)}

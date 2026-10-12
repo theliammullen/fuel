@@ -1,5 +1,5 @@
 /* Fuel service worker — offline app shell + food database. Bump VERSION to ship updates. */
-const VERSION = 'fuel-v1.4.2';
+const VERSION = 'fuel-v1.4.3';
 const SHELL = ['./','index.html','css/app.css','css/themes.css','js/theme-boot.js','img/wood-light.jpg','img/wood-dark.jpg','js/nutrients.js','js/appearance.js','js/app.js','js/coach.js','css/coach.css','manifest.webmanifest',
   'icons/icon-180.png','icons/icon-192.png','icons/icon-512.png','icons/favicon-32.png','data/foods.json','vendor/zxing.min.js'];
 self.addEventListener('install', e => {
