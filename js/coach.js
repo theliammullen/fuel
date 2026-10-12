@@ -199,8 +199,7 @@ function bestPortion(c, M, acc, budget) {
 }
 function portionLabel(c, m) {
   if (m === 1) return c.pl;
-  const g = Math.round(c.g * m);
-  return (m === 0.5 ? '½ × ' : m === 1.5 ? '1½ × ' : m === 2 ? '2 × ' : r1(m) + ' × ') + c.pl.replace(/\s*\(.*\)$/, '') + ' (' + g + ' g)';
+  return A().portionText(m, c.pl, Math.round(c.g * m)); // e.g. '1½ cups cooked (297 g)', not '1.5 × 1 cup cooked'
 }
 /* greedy, diversity-aware picks that close the most gaps per calorie */
 function suggest(ds, limit = 6) {

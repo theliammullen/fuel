@@ -893,7 +893,7 @@ function openFood(item, opts = {}) {
   };
   $('#fadd', sh).onclick = () => {
     const { u, q, g, n } = calc(); if (!(g > 0)) { toast('✋', 'Enter an amount'); return; }
-    const qtyLabel = u.portion ? `${fmt(q, 2)} × ${u.label}` : `${fmt(q, 2)} ${u.label}`;
+    const qtyLabel = u.portion ? portionText(q, u.label) : `${fmt(q, 2)} ${u.label}`;
     if (mode === 'recipe') { opts.onPick && opts.onPick({ name: item.name, g, n: roundN(n), qtyLabel }); closeSheet(rec); if (LOG && LOG.mode === 'recipe') closeSheet(LOG.rec); return; }
     const before = beforeSnap();
     const ent = { id: e ? e.id : uid(), key: item.key, name: item.name, sub: item.sub, src: item.src, meal, g: +g.toFixed(2), qty: q, unit: u.id, qtyLabel: qtyLabel + (u.portion || u.id === 'g' ? '' : ` · ${fmt(g)} g`), n: roundN(n), hyd: hyd || undefined, por: item.portions, dens: item.dens, t: e ? e.t : Date.now() };
@@ -1556,13 +1556,46 @@ function attachMic(mic, ta, st) {
   };
 }
 
+/* Natural portion text: portionText(1.5, '1 cup cooked') → '1½ cups cooked'; (2, '½ avocado') → '1 avocado';
+   (1.9, '120 g fillet') → '228 g fillet'. Counts round to ¼ below 10 (whole numbers above), measured units (g/ml/oz) scale exactly.
+   Optional g appends the weight: '… (230 g)'. Falls back to '1.1 × label' only when the label has no leading amount. */
+const FRAC = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3 };
+const NOPL = new Set(['medium', 'large', 'small', 'extra', 'whole', 'tbsp', 'tsp', 'oz', 'fl', 'g', 'ml', 'lb', 'kg', 'l', 'cooked', 'raw', 'dry', 'heaping', 'level', 'thin', 'thick', 'jumbo', 'mini']);
+function fracText(v) {
+  if (v >= 10) return String(Math.round(v));
+  const q = Math.max(0.25, Math.round(v * 4) / 4), w = Math.floor(q), f = q - w;
+  const fs = f === 0.25 ? '¼' : f === 0.5 ? '½' : f === 0.75 ? '¾' : '';
+  return (w ? String(w) : '') + fs || '0';
+}
+function plural(word, many) {
+  const m = word.match(/^([a-z]+)(.*)$/i); if (!m || NOPL.has(m[1].toLowerCase())) return word;
+  let w = m[1];
+  if (many) { if (/s$/i.test(w)) return word; w = /(ch|sh|x)$/i.test(w) ? w + 'es' : /[^aeiou]y$/i.test(w) ? w.slice(0, -1) + 'ies' : w + 's'; }
+  else { if (/ies$/i.test(w)) w = w.slice(0, -3) + 'y'; else if (/(ch|sh|x)es$/i.test(w)) w = w.slice(0, -2); else if (/[^su]s$/i.test(w)) w = w.slice(0, -1); }
+  return w + m[2];
+}
+function portionText(qty, label, g) {
+  label = String(label || '').trim(); qty = +qty || 0;
+  const tail = g != null ? ' (' + fmt(g) + ' g)' : '';
+  if (Math.abs(qty - 1) < 1e-9) return label;
+  const core = label.replace(/\s*\([^)]*\)\s*$/, '');
+  const m = core.match(/^(\d+(?:\.\d+)?(?:\/\d+)?|[½¼¾⅓⅔])\s*(.*)$/);
+  if (!m) return fmt(qty, 2) + ' × ' + label + tail;
+  const base = FRAC[m[1]] != null ? FRAC[m[1]] : m[1].includes('/') ? m[1].split('/')[0] / m[1].split('/')[1] : parseFloat(m[1]);
+  const rest = m[2], tot = base * qty;
+  const mu = rest.match(/^(g|ml|oz|fl oz|lb|kg|l)\b(.*)$/i);
+  if (mu) { const v = /^(g|ml)$/i.test(mu[1]) ? fmt(Math.round(tot)) : fmt(tot, 1); return v + ' ' + mu[1] + mu[2] + (/^g$/i.test(mu[1]) ? '' : tail); }
+  const num = fracText(tot), many = Math.round(tot * 4) / 4 > 1;
+  const words = rest.split(' '); words[0] = plural(words[0], many);
+  return (num + ' ' + words.join(' ')).trim() + tail;
+}
 /* ---------- one-tap "My items" ---------- */
 function defaultServing(item) {
   const units = unitsFor(item); const rc = S.recent.find(r => r.key === item.key);
   let unit = rc && rc.last ? rc.last.unit : units[0].id; let u = units.find(x => x.id === unit);
   if (!u) { u = units[0]; unit = u.id; }
   let qty = rc && rc.last && rc.last.unit === unit ? rc.last.qty : (unit === 'g' ? 100 : 1);
-  return { u, qty, g: qty * u.g, label: u.portion ? (qty === 1 ? u.label : fmt(qty, 2) + ' × ' + u.label) : fmt(qty, 2) + ' ' + u.label };
+  return { u, qty, g: qty * u.g, label: u.portion ? portionText(qty, u.label) : fmt(qty, 2) + ' ' + u.label };
 }
 const QI = new Map(); let QI_ALL = false;
 function myItems() {
@@ -1814,5 +1847,5 @@ window.addEventListener('pagehide', flushSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSave(); return; } { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
 window.__fuel = { S: () => S, totals, evalDay, targetsFor, searchLocal, localParse, parseLabel, matchItems, openReview, gameCtx, loadDB, render, go, setDay: d => { CUR = d; render(); } };
 // used by the Coach (js/coach.js): read-only helpers + the existing review / water logging flows
-Object.assign(window.__fuel, { quickLog, undoLog, DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
+Object.assign(window.__fuel, { quickLog, undoLog, portionText, DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
 })();
