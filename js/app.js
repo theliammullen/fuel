@@ -1740,7 +1740,8 @@ function openAppearance() {
 }
 function exportData() {
   const copy = JSON.parse(JSON.stringify(S));
-  const blob = new Blob([JSON.stringify({ app: 'fuel', exported: new Date().toISOString(), data: copy }, null, 1)], { type: 'application/json' });
+  let look = null; try { look = JSON.parse(localStorage.getItem('fuel.look')); } catch (e) {}
+  const blob = new Blob([JSON.stringify({ app: 'fuel', exported: new Date().toISOString(), data: copy, look }, null, 1)], { type: 'application/json' });
   const name = 'fuel-backup-' + today() + '.json'; const file = new File([blob], name, { type: 'application/json' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: name }).catch(() => {}); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -1748,7 +1749,7 @@ function exportData() {
 }
 function importData(file) {
   if (!file) return; const r = new FileReader();
-  r.onload = () => { try { const j = JSON.parse(r.result); const d = j.data || j; if (!d.days || !d.profile) throw new Error('Not a Fuel backup'); if (!confirm('Replace current data with this backup (' + Object.keys(d.days).length + ' days)?')) return; if (d.settings) delete d.settings.ai; localStorage.setItem(STORE_KEY, JSON.stringify(d)); load(); saveNow(); invalidate(); closeAllSheets(); render(); toast('⬆️', 'Backup restored'); } catch (e) { toast('⚠️', 'Import failed', e.message); } };
+  r.onload = () => { try { const j = JSON.parse(r.result); const d = j.data || j; if (!d.days || !d.profile) throw new Error('Not a Fuel backup'); if (!confirm('Replace current data with this backup (' + Object.keys(d.days).length + ' days)?')) return; if (d.settings) delete d.settings.ai; clearTimeout(saveT); saveT = null; localStorage.setItem(STORE_KEY, JSON.stringify(d)); if (j.look && typeof j.look === 'object') { try { localStorage.setItem('fuel.look', JSON.stringify(j.look)); if (window.FuelTheme) FuelTheme.apply(FuelTheme.load()); } catch (e) {} } load(); saveNow(); invalidate(); closeAllSheets(); render(); toast('⬆️', 'Backup restored'); } catch (e) { toast('⚠️', 'Import failed', e.message); } };
   r.readAsText(file);
 }
 function openPins() {
