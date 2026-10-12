@@ -74,6 +74,9 @@ const OUT = __dirname + '/../screenshots/coach/';
 
   // ---- 3. Today card + What to eat next ----
   const card = await p.$('[data-coach="open"]'); ok(card, 'Coach card on Today after seeding');
+  // the default Tiles layout hides the Today Coach card (themes.css; Coach has its own tab) → show it in the Cards layout for the screenshot
+  const cardsLayout = () => p.evaluate(() => { document.documentElement.dataset.layout = 'cards'; });
+  await cardsLayout(); await p.waitForTimeout(200);
   await p.evaluate(() => { const c = document.querySelector('[data-coach="open"]').closest('.card, .tl'); window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 70); }); await shot('03-today-coach-card');
   const sug = await p.evaluate(() => { const r = FuelCoach.suggest(__fuel.cur(), 8); return { left: r.M.kcalLeft, prot: r.M.gaps.protein.rem, picks: r.picks.map(x => `${x.c.grp}|${x.c.nm}|${x.label}|${Math.round(x.kc)} kcal|P ${Math.round(x.n.protein || 0)}|Na ${Math.round(x.n.sodium || 0)}`) }; });
   console.log(JSON.stringify(sug, null, 1));
@@ -96,6 +99,58 @@ const OUT = __dirname + '/../screenshots/coach/';
   const salty = await p.evaluate(() => { const M = FuelCoach.gapModel(__fuel.cur()); const lim = M.T.sodium.limit; const d = __fuel.S().days[__fuel.cur()]; d.entries.push({ id: 'na', key: 'x', name: 'Salt test', meal: 'snacks', g: 5, n: { sodium: lim - (M.t.sodium || 0) - 50 }, t: Date.now() });
     const r = FuelCoach.suggest(__fuel.cur(), 8); const res = r.picks.map(x => Math.round(x.n.sodium || 0)); d.entries.pop(); return res; });
   ok(salty.every(v => v <= 50), 'near sodium cap → only picks with ≤ 50 mg sodium: ' + salty.join(','));
+
+  // ---- 3b. user-chosen goals (Fuel Tester 8a71f0d: vitamin D 250 µg, creatine 10 g, Customise overrides) ----
+  const cg = await p.evaluate(() => { const F = __fuel, C = FuelCoach, S = F.S();
+    const M = C.gapModel(F.cur()); const r = { vitD: [M.gaps.vitD.tgt, M.T.vitD.goal, M.T.vitD.base], cr: M.gaps.creatine && [M.gaps.creatine.tgt, M.T.creatine.goal] };
+    S.settings.overrides.magnesium = { goal: 600 }; F.render();
+    const M2 = C.gapModel(F.cur()); r.mg = M2.gaps.magnesium.tgt; const A = C.analyse(30); const row = A.nut.find(x => x.k === 'magnesium'); r.mgIns = row && [Math.round(row.tg), row.own];
+    r.crIns = (A.nut.find(x => x.k === 'creatine') || {}).own;
+    delete S.settings.overrides.magnesium; F.render(); r.mgBack = C.gapModel(F.cur()).gaps.magnesium.tgt; return r; });
+  console.log(JSON.stringify(cg));
+  ok(cg.vitD[0] === cg.vitD[1] && cg.vitD[0] === 250 && cg.vitD[2] === 15, 'Eat next aims at the vitamin D goal (250 µg), not the RDA (15 µg)');
+  ok(cg.cr && cg.cr[0] === 10, 'creatine goal (10 g) is a Coach gap');
+  ok(cg.mg === 600 && cg.mgIns && cg.mgIns[0] === 600 && cg.mgIns[1] === true && cg.mgBack !== 600, 'Customise goal (magnesium 600 mg) drives Eat next + Insights shortfalls; removing it restores the default');
+  ok(cg.crIns === true, 'Insights tracks creatine against the user goal');
+  // ---- 3c. supplement suggestions ----
+  const sp = await p.evaluate(() => { const F = __fuel, C = FuelCoach; const r = C.suggest(F.cur(), 8); const M = r.M;
+    return { supps: r.supps.map(x => ({ k: x.forK, key: x.c.key, own: x.c.own, nm: x.c.nm, label: x.label, amt: x.n[x.forK], have: M.t[x.forK] || 0, goal: M.T[x.forK].goal, viol: x.e.viol.length, reason: x.reason })),
+      foodGaps: ['epaDha', 'magnesium', 'potassium', 'calcium'].map(k => [k, M.gaps[k] && Math.round(M.gaps[k].rem)]) }; });
+  console.log(JSON.stringify(sp, null, 1));
+  ok(sp.supps.length && sp.supps[0].key === 'sup:creatine' && sp.supps[0].own, "user's own saved supplement (Creatine monohydrate scoop) is suggested first");
+  ok(sp.supps.some(x => x.k === 'vitD' && !x.own), 'generic vitamin D supplement suggested for a goal food cannot reach');
+  ok(sp.supps.every(x => x.have + x.amt <= x.goal + 1e-6 && x.viol === 0), 'supplement doses stay within the user goal and every cap');
+  ok(sp.supps.every(x => ['creatine', 'vitD'].includes(x.k)), 'no supplement for gaps food can fill (omega-3, magnesium, potassium, calcium …)');
+  await p.click('[data-coach-tab="next"]'); await p.waitForTimeout(400);
+  const badge = await p.evaluate(() => [...document.querySelectorAll('.co-g-supp')].map(e => e.textContent.trim()));
+  ok(badge.length === sp.supps.length && badge.every(t => /Supplement/.test(t)), 'supplement rows carry a Supplement badge');
+  ok((await p.textContent('#app')).includes('above the general upper limit'), 'neutral note: vitamin D goal is above the UL');
+  await p.evaluate(() => { const e = document.querySelector('.co-supp'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }); await shot('11-eat-next-supplements');
+  await p.evaluate(() => { const e = document.querySelector('.co-ulnote'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 300); }); await shot('12-ul-goal-note');
+  const cr0 = await p.evaluate(() => __fuel.totals(__fuel.cur()).t.creatine || 0);
+  await p.click('.co-supp'); await p.waitForTimeout(600); ok(await p.$('#rapprove'), 'supplement opens the existing review flow'); await shot('13-supplement-review');
+  await p.click('#rapprove'); await p.waitForTimeout(600);
+  const cr1 = await p.evaluate(() => { const d = __fuel.S().days[__fuel.cur()]; const e = d.entries[d.entries.length - 1]; return { cr: __fuel.totals(__fuel.cur()).t.creatine || 0, key: e.key, via: e.via }; });
+  ok(cr1.key === 'sup:creatine' && cr1.via === 'coach' && Math.abs(cr1.cr - cr0 - sp.supps[0].amt) < 0.01, `creatine logged via Coach (+${(cr1.cr - cr0).toFixed(1)} g)`);
+  const crAfter = await p.evaluate(() => FuelCoach.suggest(__fuel.cur(), 8).supps.filter(x => x.forK === 'creatine').length); ok(crAfter === 0, 'creatine at goal → no more creatine suggested');
+  // UL: user resets vitamin D to the RDA → UL 100 µg is a hard cap again, no vitamin D supplement, no note
+  const ul = await p.evaluate(() => { const F = __fuel, C = FuelCoach, S = F.S(); S.settings.overrides.vitD = { goal: 15 }; F.render();
+    const M = C.gapModel(F.cur()); const r = { cap: C.capFor('vitD', M.T, true), aim: M.gaps.vitD.tgt, dSupp: C.suggest(F.cur(), 8).supps.filter(x => x.forK === 'vitD').length, note: document.getElementById('app').textContent.includes('above the general upper limit') };
+    const d = S.days[F.cur()]; d.entries.push({ id: 'vd', key: 'x', name: 'Vit D test', meal: 'snacks', g: 1, n: { vitD: 96 - (M.t.vitD || 0) }, t: Date.now() });
+    const s2 = C.suggest(F.cur(), 8); r.maxD = Math.max(0, ...s2.picks.concat(s2.supps).map(x => x.n.vitD || 0)); d.entries.pop();
+    S.settings.overrides.vitD = {}; delete S.settings.overrides.vitD;
+    // goal 250: with 175 already (75 left, still a ≥ 20% gap), a supplement may only top up to 250
+    d.entries.push({ id: 'vd2', key: 'x', name: 'Vit D test', meal: 'snacks', g: 1, n: { vitD: 175 - (M.t.vitD || 0) }, t: Date.now() });
+    const s3 = C.suggest(F.cur(), 8); r.top = s3.supps.filter(x => x.forK === 'vitD').map(x => x.n.vitD); d.entries.pop(); F.render(); return r; });
+  console.log(JSON.stringify(ul));
+  ok(ul.cap === 100 && ul.aim === 15 && ul.dSupp === 0 && !ul.note, 'vitamin D goal at RDA → UL 100 µg cap, no supplement, no note');
+  ok(ul.maxD <= 4 + 1e-6, 'near the UL, nothing pushes vitamin D past 100 µg (largest add ' + ul.maxD.toFixed(1) + ' µg)');
+  ok(ul.top.length > 0 && ul.top.every(v => v <= 75 + 1e-6), 'goal above UL: suggestions only top up to the user goal (' + ul.top.join(',') + ' µg)');
+  await p.click('[data-coach="back"]'); await p.waitForTimeout(3500);   // let toasts clear
+  const toCard = () => p.evaluate(() => { const c = document.querySelector('.co-card'); window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 70); return scrollY; });
+  await cardsLayout(); await toCard(); await p.waitForTimeout(1500); await toCard(); await p.waitForTimeout(200); await p.screenshot({ path: OUT + '14-today-card-supplement.png' });
+  ok(await p.$('.co-card .co-g-supp'), 'Today card shows the supplement pick with its badge');
+  await p.click('[data-coach="open"]'); await p.waitForTimeout(400);
 
   // ---- 4. Meal ideas ----
   await p.click('[data-coach-tab="meals"]'); await p.waitForTimeout(500); await shot('06-meal-ideas'); await shot('06b-meal-ideas-full', true);

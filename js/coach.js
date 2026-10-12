@@ -79,7 +79,7 @@ const STAPLES = [
   [cnf('422'), 'Olive oil', 14, '1 tbsp', 'fat', { fixed: 1 }],
 ];
 function cnf(n) { return 'cnf' + n; }
-const GROUP_LABEL = { protein: 'Protein', dairy: 'Dairy', drink: 'Drink', legume: 'Legumes', grain: 'Starch', fruit: 'Fruit', veg: 'Veg', fat: 'Fats', mine: 'Yours' };
+const GROUP_LABEL = { protein: 'Protein', dairy: 'Dairy', drink: 'Drink', legume: 'Legumes', grain: 'Starch', fruit: 'Fruit', veg: 'Veg', fat: 'Fats', mine: 'Yours', supp: 'Supplement' };
 
 /* meal & snack templates (2–4 foods). parts: [staple id, multiplier of the staple portion] */
 const MEALS_T = [
@@ -106,6 +106,35 @@ const MEALS_T = [
 ];
 
 const LIMITS = ['sodium', 'satFat', 'transFat', 'addedSugar', 'caffeine'];
+
+/* ---------- user-chosen goals & upper limits ----------
+   A nutrient has a "custom goal" when it is a userGoal nutrient (vitamin D, creatine — js/nutrients.js) or the user typed
+   a goal under Customise (S.settings.overrides[k].goal). For those the Coach aims at the ACTIVE goal (T[k].goal), not the
+   default RDA/AI. ULs stay hard caps for everything the Coach suggests, except that when the user's own goal is above the
+   UL the cap becomes that goal: the Coach can help reach what they chose, but never goes past it on its own initiative. */
+function customGoal(k) {
+  const n = BY[k]; if (!n || n.type !== 'target') return false;
+  const ov = ((A().S().settings || {}).overrides || {})[k];
+  return !!n.userGoal || !!(ov && ov.goal != null && ov.goal !== '' && !isNaN(ov.goal));
+}
+/* target the Coach aims for: active goal when the user chose one; otherwise the given default (base/goal) */
+function aimFor(k, T, dflt) { const tg = T[k]; if (!tg) return null; return customGoal(k) && tg.goal > 0 ? tg.goal : dflt; }
+/* effective upper cap for a nutrient (null = none). ulNote ULs (folic acid, supplemental vit E/niacin, preformed vit A)
+   only bite for supplements. */
+function capFor(k, T, supp) {
+  const tg = T[k], x = BY[k]; if (!tg || !tg.ul || tg.ulSoft || !x) return null;
+  if (x.ulNote && !supp) return null;
+  return customGoal(k) && tg.goal > tg.ul ? tg.goal : tg.ul;
+}
+/* goals the user set above the general UL → one neutral line in the Coach */
+function aboveUL(T) { return N.filter(x => customGoal(x.key) && T[x.key] && T[x.key].ul && !T[x.key].ulSoft && T[x.key].goal > T[x.key].ul).map(x => x.key); }
+function ulGoalNote(T, keys) {
+  const a = A(); keys = keys || aboveUL(T); if (!keys.length) return '';
+  const q = k => { const n = BY[k], v = v2 => a.fmt(v2, n.dp || 0) + ' ' + n.unit + (n.iu ? ' / ' + a.fmt(v2 * n.iu) + ' IU' : ''); return `${n.name}: your goal (${v(T[k].goal)}) is above the general upper limit (${v(T[k].ul)})`; };
+  return `<div class="co-ulnote">ℹ️ ${keys.map(q).join('; ')} — a goal this high is best followed with a clinician’s guidance.</div>`;
+}
+/* nutrients the bundled food data has no values for, so only supplements/labels can count (see creatine in nutrients.js) */
+const SUPP_ONLY = new Set(['creatine']);
 let uidN = 0; const uid = () => 'co' + Date.now().toString(36) + (uidN++);
 const r1 = v => Math.round(v * 10) / 10;
 
@@ -142,10 +171,97 @@ function groupOf(it) {
 function mine() {
   const a = A(); let list = [];
   try { list = a.myItems(); } catch (e) { list = []; }
-  return list.filter(x => x.it && x.it.n100 && (x.it.n100.kcal != null)).map(({ it, why }) => {
+  return list.filter(x => x.it && x.it.n100 && (x.it.n100.kcal != null) && !isSupp(x.it)).map(({ it, why }) => {
     const ds = a.defaultServing(it);
     return { id: it.key, key: it.key, it, nm: it.name.split(',').slice(0, 2).join(','), g: ds.g, pl: ds.label, grp: 'mine', mine: why, o: { fixed: 0 } };
   });
+}
+
+/* ---------- supplements ----------
+   Rule (see suggestSupps): a supplement is suggested for a nutrient only when
+     1. the nutrient still has a meaningful gap after today's food picks (≥ 20% of the aim left), and
+     2. food can't practically close it: the best single food portion that fits the remaining calories and every cap
+        covers < 50% of what's left (always true for supplement-only nutrients such as creatine, and for a vitamin D
+        goal far above what fish/fortified milk can supply), and
+     3. the dose keeps every cap (sodium/sat fat/added sugar/caffeine, ULs) and doesn't pass the user's own goal.
+   The user's own saved supplements (favourites, recent, label-scanned) come first, then the app's generic ones.
+   Gaps that food can easily fill (e.g. omega-3 when salmon fits, magnesium when pumpkin seeds fit) get food only. */
+const SUPP_RULE = { minGap: 0.2, foodOk: 0.5, maxServ: 4 };
+const GENERIC_SUPPS = ['creatine', 'd2000', 'd1000', 'fish1', 'algae', 'mg200'];   // no whey (a food staple), multi, caffeine or electrolyte mixes
+const SUPP_RE = /supplement|creatine|vitamin|\bd3\b|softgel|capsule|tablet|fish oil|omega-?3|magnesium|multivitamin/i;
+function servKcal(it) { const g = it.servingG || (it.portions && it.portions[0] && it.portions[0][1]) || 100; return (it.n100.kcal || 0) * g / 100; }
+function isSupp(it) {
+  if (!it || !it.n100) return false;
+  if (String(it.key || '').startsWith('sup:')) return servKcal(it) < 50;          // whey (113 kcal) stays a food
+  return it.src === 'cus' && SUPP_RE.test(it.name || '') && servKcal(it) < 20;    // label-scanned supplement
+}
+function ownSupps() {
+  const a = A(), S = a.S(), out = [], seen = new Set();
+  const add = (it, why) => { if (!it || !it.key || seen.has(it.key) || !isSupp(it)) return; seen.add(it.key); out.push({ it, why }); };
+  (S.favs || []).forEach(f => add(Object.assign({}, f), 'fav'));
+  (S.recent || []).forEach(r => add(Object.assign({}, r), 'freq'));
+  (S.customFoods || []).forEach(c => add({ key: 'cus:' + c.id, name: c.name, sub: (c.brand ? c.brand + ' · ' : '') + 'Custom', src: 'cus', n100: c.n100 || {}, portions: c.portions || [], servingG: c.servingG, dens: null, hyd: false }, 'mine'));
+  return out;
+}
+function suppPool() {
+  const a = A(), own = ownSupps(), keys = new Set(own.map(x => x.it.key));
+  const gen = GENERIC_SUPPS.map(id => a.SUPPS.find(x => x.id === id)).filter(Boolean).map(sp => a.suppItem(sp)).filter(it => !keys.has(it.key));
+  const mk = (it, why) => {
+    let g, pl; try { const ds = a.defaultServing(it); g = ds.g; pl = ds.label; } catch (e) { g = it.servingG || 1; pl = '1 serving'; }
+    if (!(g > 0)) { g = it.servingG || 1; pl = '1 serving'; }
+    return { id: it.key, key: it.key, it, nm: it.name, g, pl: pl || '1 serving', grp: 'supp', supp: true, mine: why, own: !!why, o: { fixed: 1 } };
+  };
+  return own.map(x => mk(x.it, x.why)).concat(gen.map(it => mk(it, null)));
+}
+/* share of the remaining gap the best practical food portion could cover (within calories & caps) */
+function bestFoodShare(k, rem, M, acc, budget, pool) {
+  let best = 0, who = null;
+  for (const c of pool) {
+    const v100 = c.it.n100[k === 'epaDha' ? 'epa' : k] || 0; if (v100 <= 0 && !(k === 'epaDha' && c.it.n100.dha > 0)) continue;
+    for (const m of c.o.fixed || c.mine ? [1] : [1, 2]) {
+      const n = nOf(c.it, c.g * m); if ((n.kcal || 0) > budget + 10) continue;
+      if (evalN(n, M, acc).viol.length) continue;
+      const sh = Math.min(n[k] || 0, rem) / rem; if (sh > best) { best = sh; who = { c, m }; }
+    }
+  }
+  return { share: best, who };
+}
+function suggestSupps(M, acc, budget, foodPool, limit = 3) {
+  const out = [], acc2 = Object.assign({}, acc), done = new Set();
+  const NON = new Set(['protein', 'fibre', 'carbs', 'fat', 'water', 'ala', 'omega6']);   // food-only gaps
+  const gaps = Object.keys(M.gaps).filter(k => !NON.has(k)).map(k => { const g = M.gaps[k]; const rem = Math.max(0, g.rem - (acc[k] || 0)); return { k, rem, tgt: g.tgt, frac: rem / g.tgt }; })
+    .filter(x => x.rem > 0 && x.frac >= SUPP_RULE.minGap).sort((x, y) => (customGoal(y.k) - customGoal(x.k)) || (y.frac - x.frac));
+  if (!gaps.length) return out;
+  const pool = suppPool();
+  for (const g of gaps) {
+    if (out.length >= limit) break;
+    const food = SUPP_ONLY.has(g.k) ? { share: 0, who: null } : bestFoodShare(g.k, g.rem, M, acc2, budget, foodPool);
+    if (food.share >= SUPP_RULE.foodOk) continue;                       // food can do it → no supplement
+    let best = null;
+    for (const c of pool) {
+      if (done.has(c.key)) continue;
+      const one = nOf(c.it, c.g); const dose = one[g.k] || 0; if (dose <= 0) continue;
+      // primary nutrient of this supplement must be g.k (a multi doesn't count as a vitamin D supplement)
+      const prim = Object.keys(M.gaps).filter(k => (one[k] || 0) > 0).sort((x, y) => (one[y] / M.gaps[y].tgt) - (one[x] / M.gaps[x].tgt))[0];
+      if (prim !== g.k) continue;
+      const room = (aimFor(g.k, M.T, g.tgt) || g.tgt) - (M.t[g.k] || 0) - (acc2[g.k] || 0);   // never past the user's goal
+      let nServ = Math.max(1, Math.min(SUPP_RULE.maxServ, Math.floor((g.rem + dose * 0.1) / dose)));
+      while (nServ > 1 && dose * nServ > room + 1e-9) nServ--;
+      if (dose > room + dose * 0.1) continue;
+      const n = nOf(c.it, c.g * nServ);
+      const e = evalN(n, M, acc2, true); if (e.viol.length) continue;
+      if ((n.kcal || 0) > Math.max(budget, 15) + 10) continue;
+      const sc = (c.own ? 2 : 1) + Math.min(n[g.k], g.rem) / g.rem;     // own supplements first, then best fit
+      if (!best || sc > best.sc) best = { c, nServ, n, e, sc };
+    }
+    if (!best) continue;
+    const c = best.c; done.add(c.key);
+    const label = best.nServ === 1 ? c.pl : /^1\s+\S/.test(c.pl) ? c.pl.replace(/^1\s+([^\s(,]+)/, (m, w) => best.nServ + ' ' + (/s$/.test(w) ? w : w + 's')) : best.nServ + ' × ' + c.pl;   // '2 scoops', '4 servings'
+    out.push({ c, m: best.nServ, g: Math.round(c.g * best.nServ * 100) / 100, n: best.n, kc: best.n.kcal || 0, e: best.e, label, supp: true, forK: g.k,
+      reason: SUPP_ONLY.has(g.k) ? 'not in food data — supplement only' : food.who && food.share >= 0.01 ? `best food (${food.who.c.nm}) covers only ${Math.round(food.share * 100)}% of the ${amtText(g.k, g.rem)} left` : M.kcalLeft > 60 ? `food can’t practically supply the ${amtText(g.k, g.rem)} left` : `no calories left for food sources today` });
+    addTo(acc2, best.n); for (const k in best.n) acc2['_s_' + k] = (acc2['_s_' + k] || 0) + best.n[k];
+  }
+  return out;
 }
 
 /* ---------- gap model for a day ---------- */
@@ -153,20 +269,23 @@ function gapModel(ds) {
   const a = A(); const T = a.targetsFor(ds); const tot = a.totals(ds); const t = tot.t;
   const gaps = {};
   const add = (k, tgt, w) => { if (!(tgt > 0)) return; const have = t[k] || 0; gaps[k] = { tgt, have, rem: Math.max(0, tgt - have), w }; };
-  add('protein', T.protein.goal, 4);
-  add('fibre', T.fibre.goal, 1.5);
-  add('carbs', T.carbs.goal, 0.25);
-  add('fat', T.fat.base, 0.2);                // only the AMDR floor counts as a gap
-  add('epaDha', T.epaDha.base, 0.8);
-  add('ala', T.ala.base, 0.4);
-  add('omega6', T.omega6.base, 0.3);
-  add('water', T.water.goal, 0.4);
-  MICROS.forEach(k => add(k, T[k].base, ['potassium', 'vitD', 'magnesium', 'calcium'].includes(k) ? 0.5 : 0.35)); // ≈ protein + fibre combined
+  // default aims: goal for protein/fibre/carbs/water, baseline (RDA/AI, AMDR floor) for the rest; a user-chosen goal always wins
+  add('protein', aimFor('protein', T, T.protein.goal), 4);
+  add('fibre', aimFor('fibre', T, T.fibre.goal), 1.5);
+  add('carbs', aimFor('carbs', T, T.carbs.goal), 0.25);
+  add('fat', aimFor('fat', T, T.fat.base), 0.2);                // only the AMDR floor counts as a gap
+  add('epaDha', aimFor('epaDha', T, T.epaDha.base), 0.8);
+  add('ala', aimFor('ala', T, T.ala.base), 0.4);
+  add('omega6', aimFor('omega6', T, T.omega6.base), 0.3);
+  add('water', aimFor('water', T, T.water.goal), 0.4);
+  MICROS.forEach(k => add(k, aimFor(k, T, T[k].base), ['potassium', 'vitD', 'magnesium', 'calcium'].includes(k) ? 0.5 : 0.35)); // ≈ protein + fibre combined
+  // any other nutrient with a user-chosen goal (e.g. creatine 10 g)
+  N.forEach(x => { if (!gaps[x.key] && x.type === 'target' && customGoal(x.key) && T[x.key]) add(x.key, T[x.key].goal, 0.5); });
   const kcalLeft = Math.round(T.kcal.goal - (t.kcal || 0));
   return { ds, T, t, gaps, kcalLeft, waterLeft: Math.max(0, Math.round(T.water.goal - (t.water || 0))), coverage: tot.coverage, count: tot.count };
 }
 /* value of adding nutrients n on top of what's eaten (+acc from earlier picks) */
-function evalN(n, M, acc) {
+function evalN(n, M, acc, supp) {
   let gain = 0; const contrib = [];
   for (const k in M.gaps) {
     const g0 = M.gaps[k]; const rem = Math.max(0, g0.rem - (acc[k] || 0)); const v = n[k] || 0;
@@ -176,7 +295,12 @@ function evalN(n, M, acc) {
   }
   const T = M.T, t = M.t, viol = [];
   LIMITS.forEach(k => { const lim = T[k] && T[k].limit; if (lim != null && (n[k] || 0) > 0 && (t[k] || 0) + (acc[k] || 0) + n[k] > lim) viol.push(k); });
-  N.forEach(x => { const tg = T[x.key]; if (tg && tg.ul && !tg.ulSoft && !x.ulNote && !x.ulInfo && (n[x.key] || 0) > 0 && (t[x.key] || 0) + (acc[x.key] || 0) + n[x.key] > tg.ul) viol.push(x.key); });
+  N.forEach(x => {
+    const v = n[x.key] || 0; if (v <= 0) return; const cap = capFor(x.key, T, supp); if (cap == null) return;
+    // ulNote ULs apply to the supplement dose itself (food folate/niacin/vit E/carotenoids don't count toward them)
+    const tot = x.ulNote ? (acc['_s_' + x.key] || 0) + v : (t[x.key] || 0) + (acc[x.key] || 0) + v;
+    if (tot > cap) viol.push(x.key);
+  });
   // soft penalties: sodium & saturated fat eat into today's allowance
   const pen = (T.sodium.limit ? 0.6 * (n.sodium || 0) / T.sodium.limit : 0) + (T.satFat.limit ? 0.4 * (n.satFat || 0) / T.satFat.limit : 0);
   contrib.sort((x, y) => y.wf - x.wf);
@@ -225,7 +349,8 @@ function suggest(ds, limit = 6) {
     picks.push({ c: best.c, m: best.b.m, g: Math.round(best.b.g), n: best.b.n, kc: best.b.kc, e: best.b.e, label: portionLabel(best.c, best.b.m) });
     addTo(acc, best.b.n); grpN[best.c.grp] = (grpN[best.c.grp] || 0) + 1;
   }
-  return { M, picks, budget };
+  let supps = []; try { supps = suggestSupps(M, acc, budget, pool); } catch (e) { supps = []; }
+  return { M, picks, supps, budget };
 }
 /* meal & snack ideas */
 function mealIdeas(ds) {
@@ -267,7 +392,7 @@ function leftLine(M) {
   if (g.fibre) bits.push(`<b>${a.fmt(g.fibre.rem)} g</b> fibre`);
   bits.push(`<b>${fmtMl(M.waterLeft)}</b> water`);
   const low = MICROS.filter(k => g[k] && g[k].rem > 0).length;
-  return `${M.kcalLeft < 0 ? `<span style="color:var(--s-bad,var(--bad))">${a.fmt(-M.kcalLeft)} kcal over</span> · ` : 'Left: '}${(M.kcalLeft < 0 ? bits.slice(1) : bits).join(' · ')}${low ? ` · ${low} micros below baseline` : ''}`;
+  return `${M.kcalLeft < 0 ? `<span style="color:var(--s-bad,var(--bad))">${a.fmt(-M.kcalLeft)} kcal over</span> · ` : 'Left: '}${(M.kcalLeft < 0 ? bits.slice(1) : bits).join(' · ')}${low ? ` · ${low} micros below target` : ''}`;
 }
 
 /* ---------- logging through the existing review flow ---------- */
@@ -277,6 +402,9 @@ function logRows(rows, title) {
 }
 function pickRow(p, i, compact) {
   const a = A(), c = p.c;
+  if (p.supp) return `<button class="co-pick co-supp" data-coach-pick="${i}"><span class="co-grp co-g-supp">💊<br>Supplement</span>
+    <div class="co-pm"><b>${a.esc(c.nm)}</b><span>${a.esc(p.label)}${p.kc >= 1 ? ' · ' + a.fmt(p.kc) + ' kcal' : ''}${c.own ? ' · <i>yours</i>' : ''}</span><span class="co-why"><b>${amtText(p.forK, p.n[p.forK] || 0)}</b> ${a.esc(BY[p.forK].short)}${compact ? '' : ' · ' + a.esc(p.reason)}</span></div>
+    <span class="co-add">＋</span></button>`;
   return `<button class="co-pick" data-coach-pick="${i}"><span class="co-grp co-g-${c.grp}">${c.mine ? (c.mine === 'fav' ? '★' : '🔁') : ''}${GROUP_LABEL[c.grp] || ''}</span>
     <div class="co-pm"><b>${a.esc(c.nm)}</b><span>${a.esc(p.label)} · ${a.fmt(p.kc)} kcal</span>${compact ? '' : `<span class="co-why">${whyText(p.e, null)}</span>`}</div>
     <span class="co-add">＋</span></button>`;
@@ -296,11 +424,13 @@ function ensureDB() {
 function todayCard() {
   const a = A(); if (!a || !a.DB) return '';
   if (!a.DB()) { ensureDB(); return `<div class="card co-card"><h2>🧭 Coach</h2><div class="mut small">Loading food database…</div></div>`; }
-  const ds = a.cur(); const { M, picks } = suggest(ds, 3); PICKS = picks;
+  const ds = a.cur(); const R = suggest(ds, 3); const M = R.M; const picks = R.picks.concat(R.supps.slice(0, 2)); PICKS = picks;
+  const ulKeys = aboveUL(M.T).filter(k => R.supps.slice(0, 2).some(p => p.forK === k));
   return `<div class="card co-card"><h2>🧭 What to eat next <button class="r" data-coach="open">Coach ›</button></h2>
    <div class="co-left">${leftLine(M)}</div>
-   ${picks.length ? `<div class="co-list">${picks.map((p, i) => pickRow(p, i, false)).join('')}</div>` : `<div class="mut small" style="margin:8px 0">${M.kcalLeft <= 60 ? 'You’re at your calorie target — nothing calorie-dense needed today.' : 'Nothing in the staples list closes a gap without breaking a limit.'}</div>`}
+   ${picks.length ? `<div class="co-list">${picks.map((p, i) => pickRow(p, i, !!p.supp)).join('')}</div>` : `<div class="mut small" style="margin:8px 0">${M.kcalLeft <= 60 ? 'You’re at your calorie target — nothing calorie-dense needed today.' : 'Nothing in the staples list closes a gap without breaking a limit.'}</div>`}
    ${waterRow(M)}
+   ${ulKeys.length ? ulGoalNote(M.T, ulKeys) : ''}
    <div class="tiny dim" style="margin-top:8px">Tap to review &amp; log. Ranked by gaps closed per calorie, within your sodium, sat-fat, added-sugar and UL caps.</div></div>`;
 }
 
@@ -318,19 +448,23 @@ function renderCoach() {
   return header('Your habits') + insightsView();
 }
 function nextView(ds) {
-  const a = A(); const { M, picks } = suggest(ds, 8); PICKS = picks;
+  const a = A(); const { M, picks, supps } = suggest(ds, 8); PICKS = picks.concat(supps);
   const g = M.gaps;
   const microLow = MICROS.filter(k => g[k] && g[k].rem > 0).sort((x, y) => g[x].have / g[x].tgt - g[y].have / g[y].tgt);
+  const extra = Object.keys(g).filter(k => !MICROS.includes(k) && !['protein', 'fibre', 'water', 'carbs', 'fat', 'epaDha', 'ala', 'omega6'].includes(k));   // e.g. creatine
+  const own = k => customGoal(k) ? ' (your goal)' : '';
   const bar = (k, label) => { const x = g[k]; if (!x) return ''; const p = Math.min(1, x.have / x.tgt); return `<div class="co-gap"><div class="row"><span>${label}</span><span class="mut small" style="margin-left:auto">${amtText(k, x.have)} / ${amtText(k, x.tgt)}</span></div><div class="bar"><i style="width:${p * 100}%;background:${BY[k].color}"></i></div></div>`; };
   return `<div class="card"><h2>Today’s gaps</h2><div class="co-left">${leftLine(M)}</div>
-     ${bar('protein', 'Protein')}${bar('fibre', 'Fibre')}${bar('water', 'Water')}
-     ${microLow.length ? `<div class="mut small" style="margin-top:10px">Below baseline: ${microLow.slice(0, 12).map(k => `<span class="pill" style="margin:3px 3px 0 0">${BY[k].short} ${Math.round(g[k].have / g[k].tgt * 100)}%</span>`).join('')}</div>` : '<div class="mut small" style="margin-top:10px">✓ All tracked micronutrients at baseline.</div>'}
+     ${bar('protein', 'Protein' + own('protein'))}${bar('fibre', 'Fibre' + own('fibre'))}${bar('water', 'Water' + own('water'))}${extra.map(k => bar(k, BY[k].name + own(k))).join('')}
+     ${microLow.length ? `<div class="mut small" style="margin-top:10px">Below target: ${microLow.slice(0, 12).map(k => `<span class="pill" style="margin:3px 3px 0 0">${BY[k].short} ${Math.round(g[k].have / g[k].tgt * 100)}%${customGoal(k) ? ' of your goal' : ''}</span>`).join('')}</div>` : '<div class="mut small" style="margin-top:10px">✓ All tracked micronutrients at target.</div>'}
+     ${ulGoalNote(M.T)}
      ${lowCoverage(M)}</div>
    <div class="card"><h2>What to eat next</h2>
      ${picks.length ? `<div class="co-list">${picks.map((p, i) => pickRow(p, i, false)).join('')}</div>` : `<div class="empty">${M.kcalLeft <= 60 ? 'You’ve hit your calorie target. Only near-zero-calorie foods and water would fit.' : 'No staple closes a gap without breaking a cap.'}</div>`}
      ${waterRow(M)}
+     ${supps.length ? `<h2 style="margin-top:16px">Supplements <span class="r" style="color:var(--mut);font-weight:500">only where food can’t</span></h2><div class="co-list">${supps.map((p, i) => pickRow(p, picks.length + i, false)).join('')}</div>` : ''}
      ${capsNote(M)}
-     <div class="tiny dim" style="margin-top:10px">Scoring: each food’s portion is scored by how much of your remaining protein (weighted ×4), fibre, water, essential fats and below-baseline vitamins &amp; minerals it covers, divided by its calories. Your favourites and frequent foods get a 25% boost. Portions that would push sodium, saturated fat, added sugar, caffeine or any Tolerable Upper Intake Level over today’s cap are skipped. Food values: USDA FoodData Central &amp; Health Canada CNF.</div></div>`;
+     <div class="tiny dim" style="margin-top:10px">Scoring: each food’s portion is scored by how much of your remaining protein (weighted ×4), fibre, water, essential fats and below-baseline vitamins &amp; minerals it covers, divided by its calories. Your favourites and frequent foods get a 25% boost. Where you set your own goal (e.g. vitamin D, creatine), that goal is the target. Supplements are suggested only for gaps of ≥ 20% that the best food portion fitting your calories and caps can’t cover at least half of (or that foods don’t supply, like creatine) — your own saved supplements first — and never past your goal. Portions that would push sodium, saturated fat, added sugar, caffeine or any Tolerable Upper Intake Level over today’s cap are skipped. Food values: USDA FoodData Central &amp; Health Canada CNF.</div></div>`;
 }
 function lowCoverage(M) {
   const low = ['vitD', 'vitE', 'vitK', 'choline', 'selenium', 'manganese', 'pantothenic'].filter(k => M.count && M.coverage[k] < 0.8 && M.gaps[k] && M.gaps[k].rem > 0);
@@ -377,20 +511,23 @@ function analyse(nDays) {
   if (!logged.length) return R;
   const mean = arr => arr.length ? arr.reduce((x, y) => x + y, 0) / arr.length : 0;
   // targets
-  const tgtOf = (r, k) => ['protein', 'fibre', 'water'].includes(k) ? r.T[k].goal : r.T[k].base;
+  // aim = the user's active goal where they chose one (vitamin D, creatine, any Customise goal); else goal/baseline
+  const tgtOf = (r, k) => aimFor(k, r.T, ['protein', 'fibre', 'water'].includes(k) ? r.T[k].goal : r.T[k].base);
   const TK = ['protein', 'fibre', 'water', 'epaDha', 'ala', 'omega6', ...MICROS];
+  N.forEach(x => { if (!TK.includes(x.key) && x.type === 'target' && customGoal(x.key)) TK.push(x.key); });
   R.nut = TK.map(k => {
-    const xs = full.map(r => ({ v: k === 'water' ? r.t.water || 0 : r.t[k] || 0, tg: tgtOf(r, k), cov: k === 'water' ? 1 : r.cov[k] }));
+    const xs = full.map(r => ({ v: k === 'water' ? r.t.water || 0 : r.t[k] || 0, tg: tgtOf(r, k), cov: k === 'water' || SUPP_ONLY.has(k) ? 1 : r.cov[k] })).filter(x => x.tg > 0);
     const n = xs.length; if (!n) return null;
     const below = xs.filter(x => x.v < x.tg * 0.999).length;
-    return { k, n, below, avg: mean(xs.map(x => x.v)), tg: mean(xs.map(x => x.tg)), pct: mean(xs.map(x => x.v / x.tg)), cov: mean(xs.map(x => x.cov)) };
+    return { k, n, below, avg: mean(xs.map(x => x.v)), tg: mean(xs.map(x => x.tg)), pct: mean(xs.map(x => x.v / x.tg)), cov: mean(xs.map(x => x.cov)), own: customGoal(k) };
   }).filter(Boolean);
   R.lim = LIMITS.map(k => {
     const xs = full.map(r => ({ v: r.t[k] || 0, lim: r.T[k].limit })).filter(x => x.lim != null); const n = xs.length; if (!n) return null;
     return { k, n, over: xs.filter(x => x.v > x.lim).length, avg: mean(xs.map(x => x.v)), lim: mean(xs.map(x => x.lim)), cov: mean(full.map(r => r.cov[k])) };
   }).filter(Boolean);
-  R.ul = N.filter(x => x.type === 'target' && !x.ulNote && !x.ulInfo && !x.lowData).map(x => {
-    const days = full.filter(r => r.T[x.key] && r.T[x.key].ul && !r.T[x.key].ulSoft && (r.t[x.key] || 0) > r.T[x.key].ul).length;
+  // UL days: a goal the user set above the UL moves the line to that goal (their choice); everything else uses the UL
+  R.ul = N.filter(x => x.type === 'target' && !x.ulNote && !x.lowData).map(x => {
+    const days = full.filter(r => { const cap = capFor(x.key, r.T, false); return cap != null && (r.t[x.key] || 0) > cap; }).length;
     return days ? { k: x.key, days } : null;
   }).filter(Boolean);
   R.kcal = full.length ? { avg: mean(full.map(r => r.t.kcal || 0)), goal: mean(full.map(r => r.T.kcal.goal)), on: full.filter(r => Math.abs((r.t.kcal || 0) / r.T.kcal.goal - 1) <= 0.1).length, over: full.filter(r => (r.t.kcal || 0) > r.T.kcal.goal * 1.1).length, under: full.filter(r => (r.t.kcal || 0) < r.T.kcal.goal * 0.9).length } : null;
@@ -466,8 +603,11 @@ function takeaways(R) {
   const nm = k => BY[k].name;
   const chronic = R.nut.filter(x => x.below / x.n >= 0.7 && x.cov >= 0.8);
   chronic.filter(x => x.k === 'protein').forEach(x => say('bad', '🥩', `Protein was under your ${a.fmt(x.tg)} g goal on ${x.below} of ${x.n} full days (average ${a.fmt(x.avg)} g, ${PCT(x.pct)}).`, SRC.ISSN_P));
-  const microC = chronic.filter(x => x.k !== 'protein' && x.k !== 'water');
+  const microC = chronic.filter(x => x.k !== 'protein' && x.k !== 'water' && !x.own);
   if (microC.length) say('bad', '📉', `Chronic shortfalls (below target on ≥ 70% of full days): ${microC.map(x => `${nm(x.k)} (avg ${PCT(x.pct)})`).join(', ')}.`, SRC.DRI);
+  const ownC = chronic.filter(x => x.k !== 'protein' && x.k !== 'water' && x.own);
+  if (ownC.length) say('warn', '🎯', `Below the goal you set on ≥ 70% of full days: ${ownC.map(x => `${nm(x.k)} (avg ${amtText(x.k, x.avg)} of ${amtText(x.k, x.tg)})`).join(', ')}.`,
+    ownC.some(x => x.k === 'creatine') ? NS.ISSN_CR : null);
   chronic.filter(x => x.k === 'water').forEach(x => say('bad', '💧', `Fluids were under goal on ${x.below} of ${x.n} days (average ${fmtMl(x.avg)} vs ${fmtMl(x.tg)}).`, SRC.DRI_W));
   const unsure = R.nut.filter(x => x.below / x.n >= 0.7 && x.cov < 0.8);
   if (unsure.length) say('info', 'ℹ️', `${unsure.map(x => nm(x.k)).join(', ')} also read low, but many foods you log have no data for ${unsure.length > 1 ? 'them' : 'it'} — the shortfall may be partly a data gap.`, null);
@@ -509,11 +649,15 @@ function insightsView() {
   if (nF >= 1) {
     const rows = R.nut.slice().sort((x, y) => x.pct - y.pct);
     const fixes = rows.filter(x => nF >= 3 && x.below / x.n >= 0.7 && x.k !== 'water').slice(0, 4).map(x => {
-      const ff = fixFoods(x.k, x.tg); if (!ff.length) return '';
+      const ff = SUPP_ONLY.has(x.k) ? [] : fixFoods(x.k, x.tg);
+      if (!ff.length || (x.own && ff[0].f < SUPP_RULE.foodOk)) {   // food can't practically get there → name a supplement instead
+        const sp = suppPool().find(c => (nOf(c.it, c.g)[x.k] || 0) > 0 && Object.keys(c.it.n100).filter(q => BY[q] && BY[q].type === 'target').length <= 3);
+        return sp ? `<div class="co-fix"><b>${BY[x.k].name}</b>: <span class="co-sbadge">💊 Supplement</span> ${a.esc(sp.nm)} <span class="mut">(${a.esc(sp.pl)} = ${amtText(x.k, nOf(sp.it, sp.g)[x.k])}${sp.own ? ', yours' : ''})</span> — food can’t practically supply ${amtText(x.k, x.tg)}.</div>` : '';
+      }
       return `<div class="co-fix"><b>${BY[x.k].name}</b>: ${ff.map(f => `${a.esc(f.s.nm)} <span class="mut">(${a.esc(f.s.pl.replace(/\s*\(.*\)$/, ''))} ≈ ${Math.round(f.f * 100)}%)</span>`).join(', ')}</div>`;
     }).join('');
-    nutCard = `<div class="card"><h2>Nutrient patterns</h2><div class="mut small" style="margin-bottom:8px">Average intake as % of target (baseline RDA/AI; goal for protein, fibre &amp; water), and how many full days fell short.</div>
-      <div class="nlist">${rows.map(x => `<div class="nr"><div class="nm">${BY[x.k].name}<span>${x.n > 0 ? `short ${x.below}/${x.n} days` : ''}${x.cov < 0.8 ? ' · ~incomplete data' : ''}</span></div><div class="bw"><div class="bar"><i style="width:${Math.min(100, x.pct * 100)}%;background:${x.pct >= 1 ? 'var(--s-good,var(--a3))' : x.pct >= 0.7 ? 'var(--s-warn,var(--warn))' : 'var(--s-bad,var(--bad))'}"></i></div></div><div class="v">${PCT(x.pct)}<span>${amtText(x.k, x.avg)}</span></div></div>`).join('')}</div>
+    nutCard = `<div class="card"><h2>Nutrient patterns</h2><div class="mut small" style="margin-bottom:8px">Average intake as % of target (baseline RDA/AI; goal for protein, fibre &amp; water; <b>your own goal</b> where you set one), and how many full days fell short.</div>
+      <div class="nlist">${rows.map(x => `<div class="nr"><div class="nm">${BY[x.k].name}<span>${x.own ? 'your goal · ' : ''}${x.n > 0 ? `short ${x.below}/${x.n} days` : ''}${x.cov < 0.8 ? ' · ~incomplete data' : ''}</span></div><div class="bw"><div class="bar"><i style="width:${Math.min(100, x.pct * 100)}%;background:${x.pct >= 1 ? 'var(--s-good,var(--a3))' : x.pct >= 0.7 ? 'var(--s-warn,var(--warn))' : 'var(--s-bad,var(--bad))'}"></i></div></div><div class="v">${PCT(x.pct)}<span>${amtText(x.k, x.avg)}</span></div></div>`).join('')}</div>
       <h2 style="margin-top:16px">Limits</h2><div class="nlist">${R.lim.map(x => `<div class="nr"><div class="nm">${BY[x.k].name}<span>over ${x.over}/${x.n} days${x.cov < 0.8 ? ' · ~incomplete data' : ''}</span></div><div class="bw"><div class="bar"><i style="width:${Math.min(100, x.avg / x.lim * 100)}%;background:${x.avg > x.lim ? 'var(--s-bad,var(--bad))' : x.avg > 0.8 * x.lim ? 'var(--s-warn,var(--warn))' : 'var(--s-good,var(--a3))'}"></i></div></div><div class="v">${PCT(x.avg / x.lim)}<span>${amtText(x.k, x.avg)}</span></div></div>`).join('')}</div>
       ${fixes ? `<h2 style="margin-top:16px">Foods that would close your chronic gaps</h2>${fixes}` : ''}</div>`;
   }
@@ -565,6 +709,6 @@ function afterRender(app, view) {
   if (anchor) anchor.after(card);
   else { const meal = app.querySelector('.meal'); if (meal) meal.before(card); else (app.querySelector('.view') || app).appendChild(card); }
 }
-G.FuelCoach = { views: { coach: renderCoach }, afterRender, todayCard, suggest, mealIdeas, analyse, takeaways, staples, STAPLES, MEALS_T, gapModel, _ui: UI };
+G.FuelCoach = { views: { coach: renderCoach }, afterRender, todayCard, suggest, suggestSupps, mealIdeas, analyse, takeaways, staples, STAPLES, MEALS_T, gapModel, customGoal, capFor, aboveUL, SUPP_RULE, _ui: UI };
 if (G.__fuel) G.__fuel.render();
 })(window);
