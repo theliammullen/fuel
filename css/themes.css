@@ -1,0 +1,197 @@
+/* Fuel appearance layer — loaded after app.css. Re-skins colours through CSS variables set by js/theme-boot.js
+   (themes, accent, tile palette), and adds the Today layouts (tiles / rings / cards / compact), density, reduce-motion,
+   and 44px tap targets. Keep colour literals out of here: use the variables. */
+
+/* ---------- base re-skin ---------- */
+body{background:
+  radial-gradient(900px 520px at 8% -12%,rgba(var(--acc-rgb),calc(.22 * var(--glow))),transparent 60%),
+  radial-gradient(700px 500px at 110% 6%,rgba(var(--acc-rgb),calc(.12 * var(--glow))),transparent 60%),var(--bg);background-attachment:fixed}
+.card{background:var(--surface);border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+[data-mode=light] .card{box-shadow:0 1px 2px var(--shadow)}
+.card h2 .r,a{color:var(--acc-text)}
+.iconbtn{background:var(--surface);border:0}
+.datebar .d{background:var(--surface);border:0}
+.pill{background:var(--surface2);border:0}
+.pill.gold{background:rgba(var(--fg-rgb),.06);color:var(--s-gold)}.pill.good{background:rgba(var(--fg-rgb),.06);color:var(--s-good)}
+.pill.bad{background:rgba(var(--fg-rgb),.06);color:var(--s-bad)}.pill.warn{background:rgba(var(--fg-rgb),.06);color:var(--s-warn)}
+.ring-track{stroke:rgba(var(--fg-rgb),.08)}
+.bar{background:rgba(var(--fg-rgb),.08)}
+.bar .mk{background:rgba(var(--fg-rgb),.55)}
+.lvl .badge{background:var(--grad-btn);color:var(--on-acc);box-shadow:none}
+.lvl .xpbar{background:rgba(var(--fg-rgb),.08)}
+.stat3>div{background:var(--surface2);border:0}
+.tile{background:var(--surface2);border:0}
+.tile.peak{animation:none;box-shadow:inset 0 0 0 2px var(--s-gold)}
+.tile .st{color:var(--dim)}
+.qb{background:rgba(var(--fg-rgb),.07);border:0;color:var(--s-water)}
+.entry{border-top:1px solid var(--line)}
+.entry .kc span{color:var(--acc-text)}
+.addmeal{border:1.5px dashed rgba(var(--fg-rgb),.2);color:var(--mut)}
+.tabbar{background:var(--tabbar);border:0;box-shadow:0 12px 34px var(--shadow)}
+.tab{color:var(--dim)}
+.tab.on{color:var(--text)}
+.tab.on svg{filter:none;color:var(--acc-text)}
+.fab{background:var(--grad-btn);box-shadow:0 10px 24px rgba(var(--acc-rgb),.4)}
+.fab svg{color:var(--on-acc)}
+.backdrop{background:rgba(0,0,0,.5)}
+.sheet{background:var(--sheet);border:0;box-shadow:0 -16px 44px var(--shadow)}
+.sheet .grab{background:rgba(var(--fg-rgb),.25)}
+.inp,select.inp{background:var(--surface2);border:1px solid transparent}
+.inp:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(var(--acc-rgb),.25)}
+select.inp{background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%)}
+select.inp option{background:var(--surface);color:var(--text)}
+.btn{background:var(--surface2);border:0}
+.btn.pri{background:var(--grad-btn);color:var(--on-acc);box-shadow:none}
+.btn.danger{background:rgba(var(--fg-rgb),.06);color:var(--s-bad)}
+.seg{background:var(--surface2);border:0}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 4px var(--shadow)}
+.list .it:active{background:rgba(var(--fg-rgb),.05)}
+.tag{background:rgba(var(--fg-rgb),.08);color:var(--mut)}
+.tag.f{color:var(--s-good)}.tag.off{color:var(--s-warn)}.tag.cus{color:var(--s-violet)}.tag.sup,.tag.fn{color:var(--s-cyan)}.tag.cnf{color:var(--s-bad)}
+.tag.f,.tag.off,.tag.cus,.tag.sup,.tag.fn,.tag.cnf{background:rgba(var(--fg-rgb),.08)}
+.macro4>div,.tiers>div,.note,.bdg{background:var(--surface2);border:0}
+.tiers .p{box-shadow:inset 0 0 0 1.5px var(--s-gold);background:var(--surface2)}
+.tiers .u{box-shadow:inset 0 0 0 1.5px var(--s-bad);background:var(--surface2)}
+.why{color:var(--text)}
+.switch{background:rgba(var(--fg-rgb),.18)}
+.switch.on{background:var(--acc)}
+.bdg.on{box-shadow:inset 0 0 0 1.5px var(--s-gold);background:var(--surface2)}
+.bdg .ic{background:rgba(var(--fg-rgb),.07)}
+.bdg .pg{background:rgba(var(--fg-rgb),.1)}
+.chart text{fill:var(--dim)}
+.chart line[stroke^="rgba(255"]{stroke:rgba(var(--fg-rgb),.08)}
+.legend{color:var(--mut)}
+.toast{background:var(--toast);border:0;box-shadow:0 14px 36px var(--shadow)}
+.toast .tbtn{background:var(--grad-btn);border:0;color:var(--on-acc)}
+.chip{background:var(--surface2);border:0}
+.chip.on{background:var(--acc);color:var(--on-acc)}
+.qi{background:var(--surface2);border:0}
+.qi:active,.qi.press{background:rgba(var(--acc-rgb),.25)}
+.unparsed{background:rgba(var(--fg-rgb),.05);border:1px solid var(--s-bad);color:var(--text)}
+.unparsed b{color:var(--s-bad)}
+.inp.hl-ok{border-color:var(--s-good)}.inp.hl-dv{border-color:var(--s-cyan)}.inp.hl-assumed{border-color:var(--s-warn)}.inp.hl-bad{border-color:var(--s-bad)}
+.glass{border-color:rgba(var(--fg-rgb),.18);background:rgba(var(--fg-rgb),.04)}
+:focus-visible{outline:3px solid var(--acc-text);outline-offset:2px}
+button:focus:not(:focus-visible){outline:none}
+
+/* ---------- tap targets ≥ 44px ---------- */
+.iconbtn{width:44px;height:44px}
+.tab{min-height:44px}
+.seg button{min-height:40px}
+.seg{padding:2px}
+.chip{min-height:40px;padding:9px 13px}
+.qb{min-height:44px;padding:10px 14px}
+.addmeal{min-height:44px}
+.btn{min-height:44px}
+.card h2 .r{min-height:44px;display:inline-flex;align-items:center;padding:0 2px;margin:-14px 0}
+/* invisible hit-area extension for small controls (makes the touch box ≥ 44×44 without changing layout) */
+.iconbtn,.switch,.toast .tbtn,.chip,.seg button,[data-delw],[data-act=water-list],.card h2 .r{position:relative}
+.iconbtn::before,.switch::before,.qi .qe::before,.toast .tbtn::before,.chip::before,.seg button::before,[data-delw]::before,[data-act=water-list]::before,.card h2 .r::before{
+  content:"";position:absolute;top:min(0px,calc(50% - 22px));bottom:min(0px,calc(50% - 22px));left:min(0px,calc(50% - 22px));right:min(0px,calc(50% - 22px))}
+
+/* ---------- density ---------- */
+[data-density=compact] .card{padding:12px;margin-bottom:8px;border-radius:18px}
+[data-density=compact] .grid2{gap:8px}
+[data-density=compact] .tile{padding:10px}
+[data-density=compact] .tile .val{font-size:19px;margin:3px 0 6px}
+[data-density=compact] .entry{padding:7px 0}
+[data-density=compact] .top{padding-bottom:8px}
+[data-density=compact] .tgrid{gap:8px}
+[data-density=compact] .tl{padding:12px;min-height:0}
+[data-density=compact] .tl.hero{min-height:104px}
+[data-density=compact] .tl .big{font-size:30px}
+
+/* ---------- reduce motion ---------- */
+[data-motion=reduce] *,[data-motion=reduce] *::before,[data-motion=reduce] *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+[data-motion=reduce] .glass i:before{animation:none!important}
+
+/* ---------- Today: Tiles (default) ---------- */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tl{--on:var(--text);position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
+  min-height:96px;padding:14px;border-radius:20px;background:var(--surface);color:var(--on);overflow:hidden;
+  transition:transform .18s cubic-bezier(.3,1.4,.5,1),filter .18s,box-shadow .18s;-webkit-user-select:none;user-select:none}
+.tl.w2{grid-column:span 2}
+.tl.hero{min-height:132px}
+button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
+.tl:focus-visible{outline:none;box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--acc-text)}
+.tl .lb{font-size:13px;font-weight:700;letter-spacing:.02em;opacity:.92;display:flex;align-items:center;gap:6px;width:100%}
+.tl .lb .r{margin-left:auto;font-weight:700}
+.tl>div:not(.lb){width:100%}
+.tl .big{font-size:36px;font-weight:850;letter-spacing:-.035em;line-height:1;font-variant-numeric:tabular-nums}
+.tl .big small{font-size:15px;font-weight:700;letter-spacing:0;margin-left:3px;opacity:.9}
+.tl .sub{font-size:12.5px;font-weight:600;opacity:.88;margin-top:4px}
+.tl .ico{font-size:34px;line-height:1}
+.tl .ttl{font-size:20px;font-weight:850;letter-spacing:-.01em;margin-top:8px}
+.tl .tbar{width:100%;height:8px;border-radius:9px;background:color-mix(in srgb,var(--on) 22%,transparent);overflow:hidden;margin-top:10px}
+.tl .tbar i{display:block;height:100%;width:0;border-radius:9px;background:var(--on);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.tl .done{position:absolute;top:12px;right:12px;font-size:11.5px;font-weight:800;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--on) 18%,transparent)}
+.tl .tbtns{display:flex;gap:8px;margin-top:10px;width:100%}
+.tl .tb{flex:1;min-height:44px;border-radius:14px;font-weight:800;font-size:14px;color:var(--on);background:color-mix(in srgb,var(--on) 18%,transparent);transition:transform .12s}
+.tl .tb:active{transform:scale(.93);background:color-mix(in srgb,var(--on) 30%,transparent)}
+.tl.neutral{background:var(--surface);--on:var(--text);min-height:64px;flex-direction:row;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:14.5px}
+.tl.neutral svg{width:20px;height:20px}
+.tl.hit::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,#fff 35%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:shine 1.4s .4s ease-out 1 both;pointer-events:none}
+@keyframes shine{to{transform:translateX(100%)}}
+.tgrid3{grid-template-columns:repeat(3,1fr)}
+/* tile colours */
+.tl.c-say{background:var(--t-say);--on:var(--t-say-on)}.tl.c-label{background:var(--t-label);--on:var(--t-label-on)}
+.tl.c-kcal{background:var(--t-kcal);--on:var(--t-kcal-on)}.tl.c-protein{background:var(--t-protein);--on:var(--t-protein-on)}
+.tl.c-water{background:var(--t-water);--on:var(--t-water-on)}.tl.c-carbs{background:var(--t-carbs);--on:var(--t-carbs-on)}
+.tl.c-fat{background:var(--t-fat);--on:var(--t-fat-on)}.tl.c-items{background:var(--t-items);--on:var(--t-items-on)}
+.tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on)}
+.tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on)}
+/* My items inside a tile */
+.tl .qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:10px}
+.tl .qi{background:color-mix(in srgb,var(--on) 15%,transparent);color:var(--on);border-radius:14px;min-height:56px}
+.tl .qi .qs,.tl .qi .qk{color:var(--on);opacity:.88}.tl .qi .qk b{color:var(--on)}
+.tl .qi .qe{color:var(--on)}
+.tl .qi:active,.tl .qi.press{background:color-mix(in srgb,var(--on) 28%,transparent)}
+.tl .more{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:750;font-size:13px;color:var(--on);background:color-mix(in srgb,var(--on) 12%,transparent)}
+.tl .emptyt{font-size:13.5px;font-weight:600;opacity:.9;margin-top:8px;line-height:1.4}
+
+/* XP float */
+.xpfloat{position:absolute;right:12px;top:8px;font-weight:850;font-size:14px;color:var(--on,var(--acc-text));animation:xpf 1.6s ease-out both;pointer-events:none}
+@keyframes xpf{0%{opacity:0;transform:translateY(8px) scale(.8)}20%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-18px)}}
+/* goal-hit ring glow (Rings layout) */
+.ringwrap.hit svg{animation:ringhit 1.2s ease-out 1}
+@keyframes ringhit{0%{filter:none}40%{filter:drop-shadow(0 0 14px rgba(var(--acc-rgb),.8))}100%{filter:none}}
+.macro .ok{color:var(--s-good);font-weight:800}
+
+/* ---------- Today: Cards ---------- */
+.mcards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcard{background:var(--surface2);border-radius:18px;padding:14px;text-align:left;position:relative}
+.mcard .k{font-size:12.5px;font-weight:700;color:var(--mut);display:flex;align-items:center;gap:6px}
+.mcard .k i{width:10px;height:10px;border-radius:4px;display:inline-block}
+.mcard .v{font-size:26px;font-weight:850;letter-spacing:-.03em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.mcard .v small{font-size:13px;color:var(--mut);font-weight:650;margin-left:3px;letter-spacing:0}
+.mcard .s{font-size:12px;color:var(--mut);margin-bottom:8px}
+/* ---------- Today: Compact ---------- */
+.clist .crow{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 0;text-align:left;border-bottom:1px solid var(--line)}
+.clist .crow:last-child{border-bottom:0}
+.clist .crow .n{width:32%;font-size:14px;font-weight:700}
+.clist .crow .bw{flex:1}
+.clist .crow .v{width:96px;text-align:right;font-size:13px;font-weight:750;font-variant-numeric:tabular-nums}
+.clist .crow .v span{color:var(--mut);font-weight:550}
+.qstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin:0 -2px;scrollbar-width:none}
+.qstrip::-webkit-scrollbar{display:none}
+.qstrip .qi{min-width:150px;flex:none}
+/* Appearance UI */
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw{border-radius:16px;padding:10px;min-height:76px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;position:relative;box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb),.12)}
+.sw.on{box-shadow:inset 0 0 0 3px var(--acc-text)}
+.sw b{font-size:13px}
+.sw .dots{display:flex;gap:4px}.sw .dots i{width:14px;height:14px;border-radius:5px;display:block}
+.accs{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.acc{width:44px;height:44px;border-radius:14px;position:relative;box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb),.15)}
+.acc.on{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--acc-text)}
+.acc input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.lays{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.lay{border-radius:14px;background:var(--surface2);padding:8px 4px 10px;min-height:84px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700}
+.lay.on{box-shadow:inset 0 0 0 3px var(--acc-text)}
+.lay svg{width:44px;height:44px}
+.tcust{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tcust label{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border-radius:14px;font-size:13px;font-weight:750;position:relative}
+.tcust input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.prow{display:flex;align-items:center;gap:10px;min-height:48px}
+.prow>div{flex:1}
+.datebar .d{min-height:44px;display:grid;place-items:center}
