@@ -53,7 +53,7 @@ function load() {
   for (const k in d.settings) if (S.settings[k] == null) S.settings[k] = d.settings[k];
 }
 let saveT;
-function save() { clearTimeout(saveT); saveT = setTimeout(saveNow, 120); }
+function save() { clearTimeout(saveT); saveT = setTimeout(() => { saveT = null; saveNow(); }, 120); }
 function saveNow() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
   catch (e) { toast('⚠️', 'Storage full', 'Export a backup and clear old data.'); }
@@ -1801,7 +1801,10 @@ loadDB().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 let lastToday = today();
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
+/* iOS freezes/kills a backgrounded home-screen app without unload: write any debounced save immediately when hidden */
+function flushSave() { if (saveT) { clearTimeout(saveT); saveT = null; saveNow(); } }
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSave(); return; } { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
 window.__fuel = { S: () => S, totals, evalDay, targetsFor, searchLocal, localParse, parseLabel, matchItems, openReview, gameCtx, loadDB, render, go, setDay: d => { CUR = d; render(); } };
 // used by the Coach (js/coach.js): read-only helpers + the existing review / water logging flows
 Object.assign(window.__fuel, { DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
