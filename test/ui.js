@@ -23,6 +23,9 @@ const SS = '/workspace/nutrition-app/screenshots/';
     }
     S.weights = []; [196.4, 195.8, 196.0, 195.1, 194.6, 194.9, 194.0, 193.4, 193.6, 192.8, 192.5].forEach((lb, i) => S.weights.push({ d: ds(20 - i * 2), lb }));
     S.profile.weightLb = 192.5; S.profile.name = 'Liam';
+    const snap = (q, last) => { const it = __fuel.searchLocal(q)[0]; return { key: it.key, name: it.name, sub: it.sub, src: it.src, n100: it.n100, portions: it.portions, dens: it.dens, hyd: it.hyd, last }; };
+    S.favs = [snap('yogurt greek plain nonfat'), snap('banana raw')];
+    S.recent = [snap('egg whole cooked', { qty: 2, unit: 'p0', meal: 'breakfast' }), snap('chicken breast cooked', { qty: 170, unit: 'g', meal: 'lunch' }), snap('coffee brewed', { qty: 1, unit: 'p0', meal: 'breakfast' })];
     localStorage.setItem('fuel.v1', JSON.stringify(S));
   });
   await p.reload(); await p.waitForTimeout(1800);
@@ -89,24 +92,50 @@ const SS = '/workspace/nutrition-app/screenshots/';
   console.log('sheets open', await p.$$eval('.sheet', x => x.length));
   console.log('ach', await p.evaluate(() => Object.keys(__fuel.S().achievements).join(',')), 'xp', await p.evaluate(() => __fuel.gameCtx().xp));
   console.log('SW', await p.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!r; }));
-  // mocked AI photo flow
-  await p.evaluate(() => { const S = __fuel.S(); S.settings.ai = { provider: 'openai', key: 'sk-test', model: '' }; localStorage.setItem('fuel.v1', JSON.stringify(S)); });
-  await p.route('https://api.openai.com/**', async route => {
-    const body = JSON.parse(route.request().postData()); console.log('AI req model', body.model, 'has image', JSON.stringify(body).includes('data:image/jpeg'));
-    await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items: [
-      { name: 'Fried egg', search: 'Egg, whole, cooked, fried', grams: 50, ml: null, portion: '1 large egg', is_drink: false, confidence: 0.9 },
-      { name: 'Grilled chicken breast', search: 'Chicken, breast, meat only, cooked, roasted', grams: 160, portion: '1 breast', is_drink: false, confidence: 0.8 },
-      { name: 'Steamed broccoli', search: 'Broccoli, cooked, boiled', grams: 120, portion: '1 cup', is_drink: false, confidence: 0.85 },
-      { name: 'Protein bar', search: 'protein bar', grams: 60, is_drink: false, confidence: 0.7, brand: 'Quest', label: { serving_g: 60, kcal: 190, protein_g: 21, carbs_g: 22, fibre_g: 14, sugars_g: 1, fat_g: 8, sat_fat_g: 3, sodium_mg: 230 } },
-      { name: 'Orange juice', search: 'Orange juice', ml: 250, portion: '1 glass', is_drink: true, confidence: 0.6 } ], notes: 'Plate with egg, chicken and broccoli; a protein bar label and a glass of juice.' }) } }] }) });
-  });
-  await p.reload(); await p.waitForTimeout(1200);
-  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-act=photo]')]);
-  await fc.setFiles('/tmp/plate.jpg'); await p.waitForTimeout(800);
-  await p.click('#pgo'); await p.waitForTimeout(2000);
-  await p.screenshot({ path: SS + '3-photo-review.png' });
-  console.log('photo rows', await p.$$eval('[data-rg]', x => x.map(i => i.value).join(',')));
-  await p.click('#rapprove'); await p.waitForTimeout(800);
+  // ---- READ THE LABEL (voice nutrition facts) ----
+  await p.reload(); await p.waitForTimeout(1500);
+  const nEnt = () => p.evaluate(() => { const S = __fuel.S(); const k = Object.keys(S.days).sort().pop(); return S.days[k].entries.length; });
+  await p.click('[data-act=label]'); await p.waitForTimeout(600);
+  await p.fill('#ltxt', 'Kirkland protein bar, serving 60 grams, 190 calories, 21 grams protein, 7 fat, 22 carbs, 15 fibre, 1 gram sugar, 200 milligrams sodium, calcium 10 percent, wombat 5');
+  await p.screenshot({ path: SS + '9a-read-label.png' });
+  await p.click('#lgo'); await p.waitForTimeout(900);
+  await p.screenshot({ path: SS + '9-label-review.png' });
+  await p.evaluate(() => { const d = document.querySelector('.sheet:last-of-type details'); d.scrollIntoView({ block: 'start' }); });
+  await p.waitForTimeout(300); await p.screenshot({ path: SS + '9b-label-review-more.png' });
+  console.log('label review fields', await p.$$eval('.sheet [data-cf]', x => x.filter(i => i.value !== '').map(i => i.dataset.cf + '=' + i.value + (i.className.match(/hl-(\w+)/) ? '[' + i.className.match(/hl-(\w+)/)[1] + ']' : '')).join(', ')));
+  console.log('unparsed box', await p.$eval('.unparsed', x => x.innerText.replace(/\s+/g, ' ')));
+  const e0 = await nEnt();
+  await p.click('#cflog'); await p.waitForTimeout(900);
+  console.log('save&log: entries', e0, '->', await nEnt(), '| custom', await p.evaluate(() => __fuel.S().customFoods.map(c => c.name + ' ' + c.servingG + 'g kcal/100g=' + c.n100.kcal).join(';')), '| fav', await p.evaluate(() => __fuel.S().favs.some(f => /Kirkland/.test(f.name))));
+  await p.waitForTimeout(6500);
+  // ---- MY ITEMS one-tap ----
+  await p.evaluate(() => document.querySelector('.qgrid').closest('.card').scrollIntoView({ block: 'center' })); await p.waitForTimeout(400);
+  await p.screenshot({ path: SS + '10-my-items.png' });
+  console.log('my items', await p.$$eval('.qi .qn', x => x.map(i => i.innerText).join(' | ')));
+  const e1 = await nEnt();
+  await p.click('.qi >> nth=0'); await p.waitForTimeout(500);
+  await p.screenshot({ path: SS + '10b-one-tap-undo.png' });
+  const e2 = await nEnt();
+  console.log('toast', await p.$eval('.toast.act', x => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('.toast.act .tbtn'); await p.waitForTimeout(600);
+  console.log('one-tap: entries', e1, '->', e2, '-> after undo', await nEnt());
+  // long-press → change serving
+  const qb = await (await p.$('.qi >> nth=1')).boundingBox();
+  await p.mouse.move(qb.x + 30, qb.y + 20); await p.mouse.down(); await p.waitForTimeout(750); await p.mouse.up(); await p.waitForTimeout(600);
+  console.log('long-press opened food sheet', !!(await p.$('.sheet.on #fadd')), '| entries unchanged', await nEnt());
+  await p.screenshot({ path: SS + '10c-long-press-serving.png' });
+  await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+  await p.click('.qi >> nth=1 >> [data-qiedit]'); await p.waitForTimeout(600);
+  console.log('⋯ opened food sheet', !!(await p.$('.sheet.on #fadd')));
+  await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+  // quick-log sheet (FAB)
+  await p.click('#fab'); await p.waitForTimeout(500); await p.screenshot({ path: SS + '11-quick-log-sheet.png' });
+  await p.click('.sheet [data-act=manual-food]'); await p.waitForTimeout(600);
+  console.log('manual form open', !!(await p.$('#cfn')), 'buttons', await p.$$eval('.sheet.on #cfsave, .sheet.on #cflog', x => x.map(b => b.innerText).join(' / ')));
+  await p.click('.sheet.on [data-close]'); await p.waitForTimeout(400);
+  await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(300);
+  await p.screenshot({ path: SS + '1-dashboard.png' });
+  console.log('AI leftovers in DOM', await p.evaluate(() => /photo|api key|openai|gemini/i.test(document.body.innerHTML)));
   console.log('ERRS', errs);
   await b.close();
 })();
