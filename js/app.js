@@ -1579,13 +1579,20 @@ function myItems() {
 }
 function quickLog(item, mealIn) {
   const ds = defaultServing(item); const meal = mealIn || (CUR === today() ? defaultMeal() : 'snacks');
-  const before = beforeSnap(); const d = day(CUR, true);
+  const before = beforeSnap(); const logDay = CUR; const d = day(logDay, true); const achBefore = Object.assign({}, S.achievements);
   const n = roundN(scaleN(item.n100, ds.g / 100));
   const ent = { id: uid(), key: item.key, name: item.name, sub: item.sub, src: item.src, meal, g: +ds.g.toFixed(2), qty: ds.qty, unit: ds.u.id, qtyLabel: ds.label + (ds.u.portion || ds.u.id === 'g' ? '' : ` · ${fmt(ds.g)} g`), n, hyd: item.hyd || undefined, por: item.portions, dens: item.dens, t: Date.now(), via: 'quick' };
   d.entries.push(ent);
   const snap = snapshot(item); snap.last = { qty: ds.qty, unit: ds.u.id, meal }; S.recent = [snap, ...S.recent.filter(r => r.key !== item.key)].slice(0, 60);
   haptic(); afterChange(before);
-  toast('⚡', 'Logged ' + item.name.split(',')[0], `${ds.label} · ${fmt(n.kcal || 0)} kcal → ${MEALS.find(m => m[0] === meal)[1]}`, { action: 'Undo', onAction: () => { const dd = day(CUR, true); dd.entries = dd.entries.filter(e => e.id !== ent.id); afterChange(); toast('↩️', 'Removed ' + item.name.split(',')[0]); } });
+  toast('⚡', 'Logged ' + item.name.split(',')[0], `${ds.label} · ${fmt(n.kcal || 0)} kcal → ${MEALS.find(m => m[0] === meal)[1]}`, { action: 'Undo', onAction: () => { undoLog(logDay, ent.id, achBefore); toast('↩️', 'Removed ' + item.name.split(',')[0]); } });
+}
+/* Undo a log: remove the entry from the day it was logged to (even if the date bar moved since) and take back any badge
+   that this log unlocked and that is no longer earned, so XP returns exactly to where it was */
+function undoLog(ds, id, achBefore) {
+  const dd = day(ds, true); dd.entries = dd.entries.filter(e => e.id !== id); invalidate();
+  const c = gameCtx(); ACH.forEach(a => { if (S.achievements[a.id] && achBefore && !achBefore[a.id] && !a.f(c)) delete S.achievements[a.id]; });
+  invalidate(); LAST_XP = gameCtx().xp; afterChange();
 }
 function qiHTML(it, why) {
   const ds = defaultServing(it); const kc = (it.n100.kcal || 0) * ds.g / 100, pr = (it.n100.protein || 0) * ds.g / 100;
@@ -1807,5 +1814,5 @@ window.addEventListener('pagehide', flushSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSave(); return; } { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
 window.__fuel = { S: () => S, totals, evalDay, targetsFor, searchLocal, localParse, parseLabel, matchItems, openReview, gameCtx, loadDB, render, go, setDay: d => { CUR = d; render(); } };
 // used by the Coach (js/coach.js): read-only helpers + the existing review / water logging flows
-Object.assign(window.__fuel, { DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
+Object.assign(window.__fuel, { quickLog, undoLog, DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
 })();
