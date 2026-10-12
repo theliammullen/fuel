@@ -37,6 +37,8 @@
     ISSN_LEU: 'ISSN Position Stand (Jäger et al., 2017) — 700–3000 mg leucine per meal',
     PAULSEN: 'Paulsen et al. 2014 — high-dose vitamins C & E blunted training adaptations',
     IOM_CAD: 'IOM/NASEM 2011 DRI for Calcium & Vitamin D — RDA 15 µg (600 IU) set assuming minimal sun exposure',
+    ISSN_CR: 'ISSN Position Stand: safety and efficacy of creatine supplementation (Kreider et al., 2017, JISSN)',
+    AVG_CR: 'Avgerinos et al. 2018, Experimental Gerontology — creatine and cognitive function (systematic review)',
     ACSM_CHO: 'ACSM/AND/DC 2016 (Thomas et al.) — carbs 3–5 g/kg/day light training, 5–7 g/kg moderate (~1 h/day), 6–10 g/kg high volume',
   };
 
@@ -103,10 +105,12 @@
     { key:'vitC', name:'Vitamin C', short:'Vit C', unit:'mg', group:'vitamin', dp:0, color:'#fbd38d', type:'target', base:90, peak:200, ul:2000,
       why:'Collagen for tendons & skin, immunity, iron absorption, antioxidant.', src:[SRC.DRI, SRC.LEVINE, SRC.PAULSEN], foods:'Red peppers, kiwi, oranges, strawberries, broccoli, Brussels sprouts',
       peakNote:'Peak 200 mg ≈ intake where plasma & tissue levels saturate (Levine 1996); easy from food. Avoid mega-dose (≥1 g) supplements around training — may blunt adaptations.' },
-    { key:'vitD', name:'Vitamin D', short:'Vit D', unit:'µg', group:'vitamin', dp:1, color:'#f6ad55', type:'target', base:15, ul:100, lowData:false,
+    { key:'vitD', name:'Vitamin D', short:'Vit D', unit:'µg', group:'vitamin', dp:1, color:'#f6ad55', type:'target', base:15, peak:250, ul:100, lowData:false,
+      userGoal:true, ulInfo:true, iu:40, baseLbl:'RDA (600 IU)', peakLbl:'your goal',
+      ulInfoNote:'Your goal is above the NASEM upper limit (4,000 IU); consider monitoring blood 25(OH)D with a doctor.',
       why:'Bone health, muscle function and immunity. In PEI (~46°N) the sun is too weak to make vitamin D from about October to March.',
       src:[SRC.DRI, SRC.IOM_CAD, SRC.ENDO24, SRC.ENDO11], foods:'Salmon, trout, sardines, fortified milk & plant milks (Canadian milk is fortified), egg yolks, UV-exposed mushrooms; supplements',
-      peakNote:'Goal = RDA 15 µg (600 IU), which NASEM set assuming minimal sun — so it already covers a PEI winter. No higher target: the Endocrine Society 2024 guideline (replacing its 2011 advice of 1500–2000 IU) recommends against routine doses above the DRI for healthy adults under 75. A supplement is reasonable if food falls short or a blood test is low. Stay under the 100 µg (4000 IU) UL. 1 µg = 40 IU.' },
+      peakNote:'Your goal: 250 µg (10,000 IU) a day — your own setting (change it under Customise below). Baseline = RDA 15 µg (600 IU), which NASEM set assuming minimal sun, and it is what the daily score and "micros at baseline" use. The NASEM Tolerable Upper Intake Level of 100 µg (4,000 IU) is shown for information only: going above it does not trigger a warning or lower your score. For context, the Endocrine Society 2024 guideline does not recommend routine doses above the DRI for healthy adults under 75. 1 µg = 40 IU.' },
     { key:'vitE', name:'Vitamin E', short:'Vit E', unit:'mg', group:'vitamin', dp:1, color:'#f6e05e', type:'target', base:15, ul:1000, ulNote:'UL 1000 mg applies to supplemental α-tocopherol only.',
       why:'Antioxidant protecting cell membranes.', src:[SRC.DRI, SRC.PAULSEN], foods:'Sunflower seeds, almonds, hazelnuts, avocado, spinach, olive oil',
       peakNote:'No evidence for higher; high-dose supplements may blunt training adaptations. UL applies to supplements (α-tocopherol).' },
@@ -178,6 +182,11 @@
       why:'Alcohol adds 7 kcal/g, impairs muscle protein synthesis and sleep, and raises cancer risk at any dose.', src:[SRC.CCSA], foods:'Beer, wine, spirits', peakNote:"No safe target. Canada's 2023 guidance: ≤ 2 standard drinks (13.45 g each) per WEEK is low risk." },
     { key:'leucine', name:'Leucine', short:'Leucine', unit:'g', group:'other', dp:1, color:'#81e6d9', type:'track',
       why:'The amino acid that switches on muscle protein synthesis. Spreading ~2–3 g across 3–5 protein feedings per day is ideal.', src:[SRC.ISSN_LEU], foods:'Whey, chicken, beef, eggs, Greek yogurt, soy', peakNote:'No daily target — aim for ~2–3 g per meal.' },
+    { key:'creatine', name:'Creatine', short:'Creatine', unit:'g', group:'other', dp:1, color:'#a3bffa', type:'target', base:3, peak:10, userGoal:true,
+      baseLbl:'ISSN maintenance', peakLbl:'your goal',
+      why:'The most-studied sports supplement. Topping up muscle creatine stores improves strength and power in repeated hard efforts and increases lean mass gains with resistance training; evidence for cognitive benefits (especially when sleep-deprived or in older adults) is promising but less certain.',
+      src:[SRC.ISSN_CR, SRC.AVG_CR], foods:'Creatine monohydrate supplement (1 scoop = 5 g). Red meat and fish contain roughly 1–2 g per 450 g raw, but the USDA and Canadian Nutrient File data bundled here have no creatine values, so only supplements and labels you enter count.',
+      peakNote:'Your goal: 10 g a day (change it under Customise below). ISSN position stand (Kreider et al. 2017): 3–5 g/day maintenance, optionally after a loading phase of ~20 g/day (4 × 5 g) for 5–7 days. Doses of 10 g/day and higher have been used safely in studies (the ISSN reports up to 30 g/day for 5 years in healthy people). Take it any time of day, with plenty of fluid.' },
     { key:'moisture', name:'Water in food', short:'Food water', unit:'g', group:'other', dp:0, color:'#90cdf4', type:'track',
       why:'Food supplies roughly 20% of total water intake. Shown for information; only drinks count toward your fluid goal.', src:[SRC.DRI_W], foods:'Fruit, vegetables, soups, yogurt', peakNote:'No target.' },
   ];
@@ -267,7 +276,8 @@
     Object.keys(ov).forEach(k => { if (T[k]) Object.keys(ov[k]).forEach(f => { const v = ov[k][f]; if (v!==''&&v!=null&&!isNaN(v)) T[k][f] = +v; }); });
     // goal = tier choice
     const tier = (s && s.tier) || 'peak';
-    Object.keys(T).forEach(k => { const t = T[k]; t.goal = t.goalOverride ?? (tier==='peak' ? (t.peak ?? t.base) : (t.base ?? t.peak)); });
+    // userGoal nutrients (vitamin D, creatine): the peak value IS the user's own daily goal, whichever tier the rings aim for
+    Object.keys(T).forEach(k => { const t = T[k]; t.goal = t.goalOverride ?? ((tier==='peak' || (BY[k] && BY[k].userGoal)) ? (t.peak ?? t.base) : (t.base ?? t.peak)); });
     if (ov.kcal && ov.kcal.goal) T.kcal.goal = +ov.kcal.goal;
     Object.keys(ov).forEach(k => { if (T[k] && ov[k].goal!=null && ov[k].goal!=='') T[k].goal = +ov[k].goal; });
     T._energy = Object.assign(e, { kcal, protein, fatG, carbsG, training });

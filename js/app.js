@@ -24,9 +24,10 @@ function fmt(v, dp = 0) {
   return (+v.toFixed(dp)).toLocaleString(undefined, { maximumFractionDigits: dp });
 }
 const fmtN = (k, v) => fmt(v, BY[k] ? (v < 10 && BY[k].dp === 0 ? 1 : BY[k].dp) : 0);
+const iuOf = (k, v) => BY[k] && BY[k].iu && v != null ? fmt(v * BY[k].iu) + ' IU' : '';   // vitamin D shown in µg and IU
 
 /* ---------------- state ---------------- */
-const DEFAULT_PINS = ['kcal','protein','carbs','fat','fibre','water','vitD','magnesium','potassium','epaDha'];
+const DEFAULT_PINS = ['kcal','protein','carbs','fat','fibre','water','vitD','creatine','magnesium','potassium','epaDha'];
 function defaults() {
   return {
     v: 1,
@@ -51,6 +52,18 @@ function load() {
   for (const k in d) if (S[k] == null) S[k] = d[k];
   for (const k in d.profile) if (S.profile[k] == null) S.profile[k] = d.profile[k];
   for (const k in d.settings) if (S.settings[k] == null) S.settings[k] = d.settings[k];
+  migrate();
+}
+/* one-time, additive migrations (never remove user data; each runs once, so later user choices stick) */
+function migrate() {
+  S.mig = S.mig || {};
+  if (!S.mig.creatine) {   // v1.4.1: Creatine nutrient — pin it on Today and put the 5 g scoop in My items
+    S.mig.creatine = 1;
+    const p = S.settings.pinned; if (!p.includes('creatine')) { const i = p.indexOf('vitD'); p.splice(i >= 0 ? i + 1 : p.length, 0, 'creatine'); }
+    const cr = snapshot(suppItem(SUPPS.find(x => x.id === 'creatine')));
+    const fi = S.favs.findIndex(f => f.key === cr.key); if (fi >= 0) S.favs[fi] = Object.assign(S.favs[fi], { name: cr.name, n100: cr.n100, portions: cr.portions }); else S.favs.push(cr);
+    S.recent.forEach(r => { if (r.key === cr.key) Object.assign(r, { name: cr.name, n100: cr.n100, portions: cr.portions }); });
+  }
 }
 let saveT;
 function save() { clearTimeout(saveT); saveT = setTimeout(() => { saveT = null; saveNow(); }, 120); }
@@ -107,12 +120,12 @@ const SUPPS = [
   { id: 'algae', name: 'Algae omega-3 softgel (≈300 DHA / 150 EPA)', n: { kcal: 9, fat: 1, epa: 150, dha: 300 } },
   { id: 'mg200', name: 'Magnesium (glycinate/citrate), 200 mg elemental', n: { magnesium: 200 } },
   { id: 'whey', name: 'Whey protein isolate, 1 scoop (30 g)', g: 30, n: { kcal: 113, protein: 25, carbs: 1.5, fat: 0.5, calcium: 150, sodium: 60, potassium: 150, leucine: 2.7 } },
-  { id: 'creatine', name: 'Creatine monohydrate, 5 g', g: 5, n: {} },
+  { id: 'creatine', name: 'Creatine monohydrate', g: 5, pl: '1 scoop', n: { creatine: 5 } },   // 5 g powder = 5 g creatine (label value)
   { id: 'multi', name: 'Men\'s multivitamin (typical, edit to label)', n: { vitA: 900, vitC: 90, vitD: 25, vitE: 15, vitK: 80, thiamin: 1.2, riboflavin: 1.3, niacin: 16, b6: 1.7, folate: 400, b12: 6, biotin: 30, pantothenic: 5, zinc: 11, selenium: 55, copper: 0.9, manganese: 2.3, iodine: 150, magnesium: 50, calcium: 200, molybdenum: 45 } },
   { id: 'preworkout', name: 'Pre-workout, 1 scoop (≈200 mg caffeine)', g: 10, n: { caffeine: 200, kcal: 5 } },
   { id: 'electrolyte', name: 'Electrolyte mix, 1 stick (≈500 mg Na)', g: 6, n: { sodium: 500, potassium: 200, magnesium: 60, kcal: 10 } },
 ];
-function suppItem(s) { return { key: 'sup:' + s.id, name: s.name, sub: 'Supplement · generic', src: 'sup', perServing: true, servingG: s.g || 1, n100: scaleN(s.n, 100 / (s.g || 1)), portions: [['1 serving', s.g || 1]], dens: null, hyd: false }; }
+function suppItem(s) { return { key: 'sup:' + s.id, name: s.name, sub: 'Supplement · generic', src: 'sup', perServing: true, servingG: s.g || 1, n100: scaleN(s.n, 100 / (s.g || 1)), portions: [[s.pl || '1 serving', s.g || 1]], dens: null, hyd: false }; }
 function customItem(c) { return { key: 'cus:' + c.id, name: c.name, sub: (c.brand ? c.brand + ' · ' : '') + 'Custom', src: 'cus', n100: c.n100, portions: c.portions || [], dens: c.dens || (c.hyd ? 1 : null), hyd: !!c.hyd, servingG: c.servingG }; }
 function recipeItem(r) {
   const tot = {}; let g = 0;
@@ -208,7 +221,8 @@ function status(k, v, T) {
     const st = pct > 1.1 ? 'over' : pct >= 0.9 ? 'peak' : pct >= 0.5 ? 'base' : 'low';
     return { pct, state: st, label: st === 'over' ? 'Over target' : st === 'peak' ? 'On target' : 'Remaining ' + fmt(goal - v) , goal };
   }
-  if (tg.ul && v > tg.ul && !(BY[k].ulNote)) return { pct, state: 'ul', label: tg.ulSoft ? 'Above upper range' : 'Above UL', goal };
+  if (BY[k].userGoal && tg.peak != null && v >= tg.goal) return { pct, state: 'peak', label: 'Goal ✦', goal };
+  if (tg.ul && v > tg.ul && !BY[k].ulNote && !BY[k].ulInfo) return { pct, state: 'ul', label: tg.ulSoft ? 'Above upper range' : 'Above UL', goal };
   if (tg.peak != null && tg.peak > (tg.base || 0) && v >= tg.peak) return { pct, state: 'peak', label: 'Peak ✦', goal };
   if (tg.base != null && v >= tg.base) return { pct, state: tg.peak > tg.base ? 'base' : 'peak', label: tg.peak > tg.base ? 'Baseline ✓' : 'Goal ✓', goal };
   return { pct, state: 'low', label: Math.round(pct * 100) + '%', goal };
@@ -228,8 +242,8 @@ function evalDay(ds) {
   const microBase = MICROS.filter(k => atBase(k, t[k], T));
   const vits = VITAMINS.every(k => atBase(k, t[k], T)), mins = MINERALS.every(k => atBase(k, t[k], T));
   const over = LIMIT_KEYS.filter(k => T[k].limit != null && (t[k] || 0) > T[k].limit);
-  const ulOver = N.filter(n => T[n.key] && T[n.key].ul && !T[n.key].ulSoft && !n.ulNote && (t[n.key] || 0) > T[n.key].ul).map(n => n.key);
-  const peakKeys = N.filter(n => n.type === 'target' && T[n.key] && T[n.key].peak != null && T[n.key].base != null && T[n.key].peak > T[n.key].base).map(n => n.key);
+  const ulOver = N.filter(n => T[n.key] && T[n.key].ul && !T[n.key].ulSoft && !n.ulNote && !n.ulInfo && (t[n.key] || 0) > T[n.key].ul).map(n => n.key);
+  const peakKeys = N.filter(n => n.type === 'target' && !n.userGoal && T[n.key] && T[n.key].peak != null && T[n.key].base != null && T[n.key].peak > T[n.key].base).map(n => n.key);
   const peakDay = logged && peakKeys.every(k => (t[k] || 0) >= T[k].peak) && microBase.length === MICROS.length && !over.length && !ulOver.length;
   let score = 0;
   if (logged) {
@@ -608,7 +622,7 @@ function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain
     const n = BY[k], v = t[k] || 0, tg = T[k] || {}, st = status(k, v, T), g = n.type === 'limit' ? tg.limit : tg.goal;
     const col = window.FuelTheme && FuelTheme.nutrientTile(n.color); const style = col ? `background:${col.fill};--on:${col.on};` : '';
     const ok = ['peak', 'base', 'ok'].includes(st.state) && v > 0;
-    return `<button class="tl c-focus" data-nut="${k}" style="${style}min-height:104px">${ok ? `<span class="done">${st.state === 'peak' ? '✦' : '✓'}</span>` : ''}<div class="lb">${esc(n.short || n.name)}</div><div><div class="big" style="font-size:26px">${fmtN(k, v)}<small>${n.unit}</small></div><div class="sub">${g != null ? (n.type === 'limit' ? 'limit ' : 'of ') + fmtN(k, g) : 'tracked'}</div>${g ? bar('t-' + k, v / g) : ''}</div></button>`;
+    return `<button class="tl c-focus" data-nut="${k}" style="${style}min-height:104px">${ok ? `<span class="done">${st.state === 'peak' ? '✦' : '✓'}</span>` : ''}<div class="lb">${esc(n.short || n.name)}</div><div><div class="big" style="font-size:26px">${fmtN(k, v)}<small>${n.unit}</small></div><div class="sub">${g != null ? (n.type === 'limit' ? 'limit ' : 'of ') + fmtN(k, g) + (n.iu ? ' · ' + iuOf(k, g) : '') : 'tracked'}</div>${g ? bar('t-' + k, v / g) : ''}</div></button>`;
   };
   return `<div class="tgrid">
     <button class="tl hero c-say" data-act="voice"><span class="ico">🎙️</span><div><div class="ttl">Say it</div><div class="sub">“2 eggs and a coffee”</div></div></button>
@@ -938,7 +952,7 @@ function afterChange(before) {
 function beforeSnap() { return Object.assign(evalDay(CUR), { lvl: levelInfo(gameCtx().xp).L }); }
 
 /* ---------------- custom foods ---------------- */
-const CF_MAIN = ['kcal', 'protein', 'carbs', 'fibre', 'sugars', 'addedSugar', 'fat', 'satFat', 'transFat', 'cholesterol', 'sodium', 'potassium', 'calcium', 'iron', 'vitD', 'caffeine'];
+const CF_MAIN = ['kcal', 'protein', 'carbs', 'fibre', 'sugars', 'addedSugar', 'fat', 'satFat', 'transFat', 'cholesterol', 'sodium', 'potassium', 'calcium', 'iron', 'vitD', 'caffeine', 'creatine'];
 function openCustomFood(c, opts = {}) {
   c = c || {}; const editing = !!c.id; const R = opts.review;
   const hlc = k => R && R.hl[k] ? ' hl-' + R.hl[k] : '';
@@ -1031,14 +1045,16 @@ function openNutrient(k) {
   const pinned = S.settings.pinned.includes(k);
   const ov = (S.settings.overrides[k] || {});
   const contrib = k === 'water' ? [] : day(CUR).entries.map(e => ({ nm: e.name, v: k === 'epaDha' ? (e.n.epa || 0) + (e.n.dha || 0) : e.n[k] || 0 })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 5);
-  const tierBox = (cls, lbl, val, sub) => `<div class="${cls}"><span>${lbl}</span><b>${val == null ? '—' : fmtN(k, val)}</b><div class="tiny mut">${sub}</div></div>`;
+  const tierBox = (cls, lbl, val, sub) => `<div class="${cls}"><span>${lbl}</span><b>${val == null ? '—' : fmtN(k, val)}</b><div class="tiny mut">${sub}${n.iu && val != null ? '<br>' + iuOf(k, val) : ''}</div></div>`;
   const html = `
-   <div class="row" style="margin-bottom:6px"><div style="font-size:34px;font-weight:800;letter-spacing:-.02em">${fmtN(k, v)}<span class="mut" style="font-size:16px"> ${n.unit}</span></div><span class="pill" style="margin-left:auto;color:${stateColor(st.state)}">${st.label}</span></div>
+   <div class="row" style="margin-bottom:6px"><div style="font-size:34px;font-weight:800;letter-spacing:-.02em">${fmtN(k, v)}<span class="mut" style="font-size:16px"> ${n.unit}${n.iu ? ' · ' + iuOf(k, v) : ''}</span></div><span class="pill" style="margin-left:auto;color:${stateColor(st.state)}">${st.label}</span></div>
    ${meter(k, v, T)}
    ${coverage[k] < 0.999 && t.kcal ? `<div class="tiny mut" style="margin-top:6px">Data available for ${Math.round(coverage[k] * 100)}% of what you logged today${coverage[k] < 0.85 ? ' — true intake is likely higher' : ''}.</div>` : ''}
    ${n.type === 'limit' ? `<div class="tiers">${tierBox('', 'Baseline', tg.base, tg.base ? 'minimum (AI)' : 'no minimum')}${tierBox('u', 'Limit', tg.limit, 'stay under')}${tierBox('', 'Today', v, Math.round(st.pct * 100) + '% of limit')}</div>`
      : n.type === 'track' ? '<div class="note">Tracked for information — no evidence-based daily target.</div>'
+     : n.userGoal ? `<div class="tiers">${tierBox('', 'Baseline', tg.base, n.baseLbl || 'optimal health')}${tierBox('p', 'Goal', tg.goal, n.peakLbl || 'your goal')}${tierBox(n.ulInfo ? '' : 'u', 'Upper limit', tg.ul, tg.ul ? (n.ulInfo ? 'NASEM UL · info only' : 'UL') : 'none set')}</div>`
      : `<div class="tiers">${tierBox('', 'Baseline', tg.base, k === 'kcal' ? 'daily target' : 'optimal health')}${tierBox('p', 'Peak', tg.peak, tg.peak > tg.base ? 'performance' : 'no evidence for higher')}${tierBox('u', 'Upper limit', tg.ul, tg.ul ? (n.ulNote ? 'supplements only' : tg.ulSoft ? 'upper range' : 'UL') : 'none set')}</div>`}
+   ${n.ulInfoNote && tg.ul && tg.goal > tg.ul ? `<div class="note">ℹ️ ${esc(n.ulInfoNote)}</div>` : ''}
    ${k === 'kcal' ? energyExplain() : ''}
    <div class="why">${esc(n.why)}</div>
    <div class="note"><b style="color:var(--text)">Targets:</b> ${esc(n.peakNote || '')}${n.ulNote ? ' ' + esc(n.ulNote) : ''}</div>
@@ -1073,7 +1089,7 @@ function renderNutrients() {
    <div class="seg">${[['all', 'All'], ...GROUPS.map(([g, l]) => [g, l.split(' ')[0]])].map(([g, l]) => `<button class="${NUT_GROUP === g ? 'on' : ''}" data-ng="${g}">${l}</button>`).join('')}</div>
    ${groups.map(([g, l]) => `<div class="card"><h2>${l}</h2><div class="nlist">${N.filter(n => n.group === g && !['epa', 'dha', 'dpa'].includes(n.key) || (g === 'fat' && NUT_GROUP === 'fat' && ['epa', 'dha', 'dpa'].includes(n.key))).filter(n => n.group === g).map(n => {
       const v = t[n.key] || 0, st = status(n.key, v, T), tg = T[n.key]; const goal = n.type === 'limit' ? tg.limit : tg.goal;
-      return `<button class="nr" data-nut="${n.key}"><div class="nm">${S.settings.pinned.includes(n.key) ? '<span style="display:inline;color:var(--a2)">● </span>' : ''}${n.name}<span>${n.type === 'limit' ? 'limit ' + fmtN(n.key, goal) + ' ' + n.unit : n.type === 'track' ? 'tracked' : 'goal ' + fmtN(n.key, goal) + ' ' + n.unit}${coverage[n.key] < 0.85 && t.kcal ? ' · ~' + Math.round(coverage[n.key] * 100) + '% data' : ''}${n.lowData ? ' · sparse data' : ''}</span></div><div class="bw">${n.type === 'track' ? '' : meter(n.key, v, T)}</div><div class="v" style="color:${stateColor(st.state)}">${fmtN(n.key, v)}<span>${n.unit}${n.type !== 'track' && goal ? ' · ' + Math.round(v / goal * 100) + '%' : ''}</span></div></button>`;
+      return `<button class="nr" data-nut="${n.key}"><div class="nm">${S.settings.pinned.includes(n.key) ? '<span style="display:inline;color:var(--a2)">● </span>' : ''}${n.name}<span>${n.type === 'limit' ? 'limit ' + fmtN(n.key, goal) + ' ' + n.unit : n.type === 'track' ? 'tracked' : 'goal ' + fmtN(n.key, goal) + ' ' + n.unit + (n.iu ? ' · ' + iuOf(n.key, goal) : '')}${coverage[n.key] < 0.85 && t.kcal ? ' · ~' + Math.round(coverage[n.key] * 100) + '% data' : ''}${n.lowData ? ' · sparse data' : ''}</span></div><div class="bw">${n.type === 'track' ? '' : meter(n.key, v, T)}</div><div class="v" style="color:${stateColor(st.state)}">${fmtN(n.key, v)}<span>${n.unit}${n.type !== 'track' && goal ? ' · ' + Math.round(v / goal * 100) + '%' : ''}</span></div></button>`;
     }).join('')}</div></div>`).join('')}
    <div class="tiny dim" style="text-align:center;padding:4px 10px 10px">White tick = baseline (RDA/AI) · gold tick = peak target · red = limit. Tap any nutrient for its evidence, sources and to pin it.</div>`;
 }
@@ -1357,7 +1373,7 @@ const LABEL_SYN = [ // phrase (regex source) → key. Longest/most specific firs
   ['(?:vitamin )?b6', 'b6'], ['folate', 'folate'], ['folic acid', 'folate'], ['(?:vitamin )?b9', 'folate'], ['(?:vitamin )?b12', 'b12'], ['cobalamin', 'b12'],
   ['biotin', 'biotin'], ['(?:vitamin )?b7', 'biotin'], ['pantothen(?:ic acid|ate)', 'pantothenic'], ['(?:vitamin )?b5', 'pantothenic'], ['choline', 'choline'],
   ['selenium', 'selenium'], ['copper', 'copper'], ['manganese', 'manganese'], ['iodine', 'iodine'], ['iodide', 'iodine'], ['molybdenum', 'molybdenum'],
-  ['caffeine', 'caffeine'], ['alcohol', 'alcohol'],
+  ['caffeine', 'caffeine'], ['alcohol', 'alcohol'], ['creatine(?: monohydrate)?', 'creatine'],
 ].map(([p, k]) => [new RegExp('\\b' + p + '\\b', 'g'), k]);
 const UNIT_SYN = [[/^(g|gr|gm|grams?)$/, 'g'], [/^(mg|milligrams?|milli ?grams?)$/, 'mg'], [/^(mcg|ug|µg|micrograms?|micro ?grams?)$/, 'mcg'], [/^(iu|ius)$/, 'iu'],
   [/^(percent|pct|%|dv)$/, '%'], [/^(kj|kilojoules?)$/, 'kj'], [/^(kcal)$/, 'kcal'], [/^(ml|millilit(?:er|re)s?)$/, 'ml'], [/^(oz|ounces?)$/, 'oz'], [/^(l|lit(?:er|re)s?)$/, 'l']];
@@ -1418,7 +1434,7 @@ function convLabel(key, val, unit, ref) {
   if (unit && toG[unit] != null && fromG[du] != null) return { v: val * toG[unit] * fromG[du], how: 'ok', note: unit !== (du === 'µg' ? 'mcg' : du) ? `${val} ${unit}` : '' };
   // no unit given → assume. Calcium/potassium/phosphorus/magnesium ≤100 with no unit are almost always "%" on Canadian labels.
   if (!unit && ['calcium', 'potassium', 'phosphorus', 'magnesium'].includes(key) && val <= 100) { const r = convLabel(key, val, '%', ref); r.how = 'assumed'; r.note = 'assumed %DV: ' + r.note; return r; }
-  const STD = ['kcal', 'protein', 'fat', 'carbs', 'fibre', 'sugars', 'addedSugar', 'satFat', 'transFat', 'monoFat', 'polyFat', 'sodium', 'cholesterol'];
+  const STD = ['kcal', 'protein', 'fat', 'carbs', 'fibre', 'sugars', 'addedSugar', 'satFat', 'transFat', 'monoFat', 'polyFat', 'sodium', 'cholesterol', 'creatine'];
   if (!unit) return STD.includes(key) ? { v: val, how: 'ok' } : { v: val, how: 'assumed', note: 'assumed ' + du };
   return { v: val, how: 'assumed', note: 'unit "' + unit + '" ignored' };
 }

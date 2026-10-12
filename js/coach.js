@@ -176,7 +176,7 @@ function evalN(n, M, acc) {
   }
   const T = M.T, t = M.t, viol = [];
   LIMITS.forEach(k => { const lim = T[k] && T[k].limit; if (lim != null && (n[k] || 0) > 0 && (t[k] || 0) + (acc[k] || 0) + n[k] > lim) viol.push(k); });
-  N.forEach(x => { const tg = T[x.key]; if (tg && tg.ul && !tg.ulSoft && !x.ulNote && (n[x.key] || 0) > 0 && (t[x.key] || 0) + (acc[x.key] || 0) + n[x.key] > tg.ul) viol.push(x.key); });
+  N.forEach(x => { const tg = T[x.key]; if (tg && tg.ul && !tg.ulSoft && !x.ulNote && !x.ulInfo && (n[x.key] || 0) > 0 && (t[x.key] || 0) + (acc[x.key] || 0) + n[x.key] > tg.ul) viol.push(x.key); });
   // soft penalties: sodium & saturated fat eat into today's allowance
   const pen = (T.sodium.limit ? 0.6 * (n.sodium || 0) / T.sodium.limit : 0) + (T.satFat.limit ? 0.4 * (n.satFat || 0) / T.satFat.limit : 0);
   contrib.sort((x, y) => y.wf - x.wf);
@@ -389,7 +389,7 @@ function analyse(nDays) {
     const xs = full.map(r => ({ v: r.t[k] || 0, lim: r.T[k].limit })).filter(x => x.lim != null); const n = xs.length; if (!n) return null;
     return { k, n, over: xs.filter(x => x.v > x.lim).length, avg: mean(xs.map(x => x.v)), lim: mean(xs.map(x => x.lim)), cov: mean(full.map(r => r.cov[k])) };
   }).filter(Boolean);
-  R.ul = N.filter(x => x.type === 'target' && !x.ulNote && !x.lowData).map(x => {
+  R.ul = N.filter(x => x.type === 'target' && !x.ulNote && !x.ulInfo && !x.lowData).map(x => {
     const days = full.filter(r => r.T[x.key] && r.T[x.key].ul && !r.T[x.key].ulSoft && (r.t[x.key] || 0) > r.T[x.key].ul).length;
     return days ? { k: x.key, days } : null;
   }).filter(Boolean);
