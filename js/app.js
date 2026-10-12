@@ -445,7 +445,8 @@ function openSheet(title, html, opts = {}) {
   document.body.append(bd, sh);
   const rec = { bd, sh, onClose: opts.onClose };
   SHEETS.push(rec); sheetHistory();
-  requestAnimationFrame(() => { bd.classList.add('on'); sh.classList.add('on'); });
+  const show = () => { bd.classList.add('on'); sh.classList.add('on'); };
+  requestAnimationFrame(show); setTimeout(show, 80);   // fallback if rAF is throttled/paused, so a sheet can never stay invisible
   bd.onclick = () => closeSheet(rec);
   $('[data-close]', sh).onclick = () => closeSheet(rec);
   // swipe down to close from grab/header
