@@ -22,7 +22,7 @@ function section() {
   html += '<div class="field"><label>Theme</label><div class="swatches">' + themeSwatch('auto', null, L.theme === 'auto');
   Object.keys(F.THEMES).forEach(function (id) { html += themeSwatch(id, F.THEMES[id], L.theme === id); });
   html += '</div></div>';
-  html += '<div class="field"><label>Accent colour</label><div class="accs"><button class="acc' + (!L.accent ? ' on' : '') + '" data-look-acc="" aria-label="Theme default" style="background:' + C.theme.accent + '"><span style="font-size:10px;font-weight:800;color:' + F.onColor(C.theme.accent).on + '">AUTO</span></button>';
+  html += '<div class="field"><label>Accent colour</label><div class="accs"><button class="acc' + (!L.accent ? ' on' : '') + '" data-look-acc="" aria-label="Theme default" style="background:' + F.onColor(C.theme.accent).fill + '"><span style="font-size:10px;font-weight:800;color:' + F.onColor(C.theme.accent).on + '">AUTO</span></button>';
   ACCENTS.forEach(function (a) { html += '<button class="acc' + (L.accent === a ? ' on' : '') + '" data-look-acc="' + a + '" aria-label="Accent ' + a + '" style="background:' + a + '"></button>'; });
   var custom = L.accent && ACCENTS.indexOf(L.accent) < 0;
   html += '<label class="acc' + (custom ? ' on' : '') + '" aria-label="Custom accent" style="background:' + (custom ? L.accent : 'conic-gradient(#f43f5e,#f59e0b,#84cc16,#06b6d4,#6366f1,#d946ef,#f43f5e)') + '"><input type="color" id="lookAccPick" value="' + (L.accent || C.theme.accent) + '"></label></div>';

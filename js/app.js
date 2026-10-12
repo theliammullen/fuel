@@ -554,7 +554,7 @@ function renderToday() {
   const focus = lay === 'compact'
     ? `<div class="card"><h2>Focus <button class="r" data-act="pins">Edit</button></h2><div class="clist">${pins.map(k => compactRow(k, t, T)).join('')}</div></div>`
     : `<div class="card"><h2>Focus <button class="r" data-act="pins">Edit</button></h2><div class="grid2">${pins.map(k => tile(k, t, T, coverage)).join('')}</div></div>`;
-  return head + actions + weightCta + myItemsCard() + hero + level + waterCard(t, T, d) + focus + MEALS.map(([mk, ml, mi]) => mealCard(mk, ml, mi, d)).join('') + `
+  return head + actions + hero + weightCta + myItemsCard() + level + waterCard(t, T, d) + focus + MEALS.map(([mk, ml, mi]) => mealCard(mk, ml, mi, d)).join('') + `
   <div class="card"><h2>Micronutrients <button class="r" data-act="go-nutrients">All nutrients ›</button></h2>
     <div class="row"><div style="flex:1"><div style="font-size:24px;font-weight:800">${microN}<span class="mut" style="font-size:15px"> / ${MICROS.length} at baseline</span></div>
     <div class="bar" style="margin-top:8px"><i data-w="${microN / MICROS.length * 100}%" style="width:0;background:var(--grad)"></i></div></div></div>${warn}</div>`;
@@ -583,6 +583,15 @@ function trainingCard(d) {
   return `<div class="card"><div class="row"><div style="flex:1"><b style="font-size:14px">🏋️ Training day</b><div class="mut small">${d.training.on ? `${d.training.hours} h · +${fmt(d.training.hours * 700)} ml water, +${fmt(d.training.hours * 500)} mg sodium allowance` : 'Raises water & sodium targets for sweat losses'}</div></div>
    ${d.training.on ? `<select class="inp" id="trainHours" style="width:auto;padding:8px 30px 8px 10px;min-height:44px">${[0.5, 1, 1.5, 2, 3].map(h => `<option ${h == d.training.hours ? 'selected' : ''} value="${h}">${h} h</option>`).join('')}</select>` : ''}
    <button class="switch ${d.training.on ? 'on' : ''}" data-act="training" role="switch" aria-checked="${!!d.training.on}" aria-label="Training day"></button></div></div>`;
+}
+/* Coach entry tile (js/coach.js owns the view; we only show its top pick + open it) */
+function coachTile() {
+  if (!window.FuelCoach) return '';
+  let top = null, M = null;
+  try { if (DB) { const r = FuelCoach.suggest(CUR, 3); M = r.M; top = r.picks && r.picks[0]; } } catch (e) { top = null; }
+  return `<div class="tl w2 c-coach"><button class="lb" data-coach="open" style="min-height:44px;color:inherit;text-align:left">🧭 What to eat next<span class="r">Coach ›</span></button>
+    ${top ? `<div class="pick"><div class="pn">${esc(String(top.c.nm).split(',').slice(0, 2).join(','))}<span>${esc(top.label || '')}${M && M.kcalLeft > 0 ? ' · ' + fmt(M.kcalLeft) + ' kcal left today' : ''}</span></div><button class="tb" data-coach-pick="0" aria-label="Review and log the top pick">+ Log</button></div>`
+      : `<div class="emptyt">${DB ? 'Ideas that close today’s gaps within your limits.' : 'Loading food ideas…'}</div>`}</div>`;
 }
 /* Tiles: flat colour blocks, big numbers, one-tap actions */
 function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain }) {
@@ -613,6 +622,7 @@ function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain
     <div class="tl w2 c-items"><div class="lb">⚡ My items<span class="r" style="font-weight:600">tap = log · hold = change</span></div>
       ${shown.length ? `<div class="qrow">${shown.map(({ it, why }) => qiHTML(it, why)).join('')}</div>${items.length > 4 ? `<button class="more" data-act="qi-all">${QI_ALL ? 'Show fewer' : `Show all ${items.length}`}</button>` : ''}`
         : `<div class="emptyt">Save foods with 🏷️ Read the label, ☆ favourite anything, or log something twice — it lands here for one-tap logging.</div>`}</div>
+    ${coachTile()}
     <button class="tl c-micro" data-act="go-nutrients" style="min-height:120px"><div class="lb">🌈 Micros</div><div style="width:100%"><div class="big">${microN}<small>/ ${MICROS.length}</small></div><div class="sub">at baseline</div>${bar('t-micro', microN / MICROS.length)}</div></button>
     <button class="tl c-score" data-act="go-awards" style="min-height:120px">${xpGain ? `<span class="xpfloat">+${xpGain} XP</span>` : ''}<div class="lb">⭐ Score</div><div style="width:100%"><div class="big">${ev.score || 0}</div><div class="sub">🔥 ${logStreak} day${logStreak === 1 ? '' : 's'} · Lv ${lv.L}</div>${bar('t-xp', lv.pct)}</div></button>
     ${pins.map(focusT).join('')}
@@ -1761,9 +1771,9 @@ document.addEventListener('click', e => {
     case 'profile': openProfile(); break;
     case 'pins': openPins(); break;
     case 'go-nutrients': go('nutrients'); break;
-    case 'training': { const d = day(CUR, true); d.training.on = !d.training.on; afterChange(); toast(d.training.on ? '🏋️' : '🛋️', d.training.on ? 'Training day on' : 'Rest day', d.training.on ? 'Water & sodium targets raised' : ''); break; }
     case 'go-awards': go('awards'); break;
     case 'appearance': openAppearance(); break;
+    case 'training': { const d = day(CUR, true); d.training.on = !d.training.on; afterChange(); toast(d.training.on ? '🏋️' : '🛋️', d.training.on ? 'Training day on' : 'Rest day', d.training.on ? 'Water & sodium targets raised' : ''); break; }
     case 'water-custom': openWaterCustom(); break;
     case 'water-list': openWaterList(); break;
     case 'add-goal': openAddGoal(); break;
@@ -1783,8 +1793,8 @@ $$('#tabbar .tab').forEach(b => b.onclick = () => go(b.dataset.tab));
 $('#fab').onclick = () => { window._pendingMeal = null; openQuickLog(); };
 
 /* ---------------- init ---------------- */
-load();
 if (window.FuelTheme) FuelTheme.onChange(() => render()); // device dark-mode / reduce-motion changes
+load();
 checkAchievements(true);
 render();
 loadDB().catch(() => {});

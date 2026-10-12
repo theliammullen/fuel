@@ -36,7 +36,7 @@ body{background:
 .backdrop{background:rgba(0,0,0,.5)}
 .sheet{background:var(--sheet);border:0;box-shadow:0 -16px 44px var(--shadow)}
 .sheet .grab{background:rgba(var(--fg-rgb),.25)}
-.inp,select.inp{background:var(--surface2);border:1px solid transparent}
+.inp,select.inp{background-color:var(--surface2);border:1px solid transparent}
 .inp:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(var(--acc-rgb),.25)}
 select.inp{background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%)}
 select.inp option{background:var(--surface);color:var(--text)}
@@ -140,6 +140,13 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .tl.c-fat{background:var(--t-fat);--on:var(--t-fat-on)}.tl.c-items{background:var(--t-items);--on:var(--t-items-on)}
 .tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on)}
 .tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on)}
+.tl.c-coach{background:var(--t-coach);--on:var(--t-coach-on)}
+/* Tiles layout: the Coach tile is the entry point, so the full Coach card (js/coach.js) is not repeated below the grid */
+[data-layout=tiles] #app .co-card{display:none}
+.tl .pick{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px}
+.tl .pick .pn{flex:1;min-width:0;font-weight:750;font-size:14.5px;line-height:1.25}
+.tl .pick .pn span{display:block;font-size:12.5px;font-weight:600;opacity:.88}
+.tl .pick .tb{flex:none;padding:0 16px}
 /* My items inside a tile */
 .tl .qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:10px}
 .tl .qi{background:color-mix(in srgb,var(--on) 15%,transparent);color:var(--on);border-radius:14px;min-height:56px}
@@ -195,3 +202,8 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .prow{display:flex;align-items:center;gap:10px;min-height:48px}
 .prow>div{flex:1}
 .datebar .d{min-height:44px;display:grid;place-items:center}
+#trainHours{min-height:44px}
+input[type=range]{min-height:44px}
+summary{min-height:44px;padding-top:12px!important;padding-bottom:12px!important;cursor:pointer}
+.chip.on{background:var(--btn1)}
+.bdg.off{opacity:1}.bdg.off .ic{opacity:.5;filter:grayscale(1)}.bdg.off b{color:var(--mut)}

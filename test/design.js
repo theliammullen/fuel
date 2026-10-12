@@ -3,6 +3,7 @@
 const { chromium } = require('/workspace/pwtest/node_modules/playwright-core');
 const OUT = '/workspace/nutrition-app/screenshots/design/';
 const QUICK = process.argv.includes('quick');
+const BASE = process.env.FUEL_URL || 'http://127.0.0.1:8766/';
 const seed = async p => p.evaluate(async () => {
   await __fuel.loadDB(); const S = __fuel.S();
   const pad = n => String(n).padStart(2, '0'); const ds = o => { const d = new Date(); d.setDate(d.getDate() - o); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -25,7 +26,7 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
   const ctx = await b.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: 'dark' });
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
-  await p.goto('http://127.0.0.1:8765/'); await p.waitForTimeout(800);
+  await p.goto(BASE); await p.waitForTimeout(800);
   await seed(p); await p.reload(); await p.waitForTimeout(1500);
   const shot = async (name, full) => { await p.waitForTimeout(1300); await p.screenshot({ path: OUT + name + '.png', fullPage: !!full }); console.log('shot', name); };
   const audit = async label => p.evaluate(label => {
@@ -102,14 +103,18 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     await p.click('#app [data-act=voice]'); await p.waitForTimeout(500); await p.fill('#vtxt', '2 eggs and a black coffee'); await p.click('#vgo'); await p.waitForTimeout(1500);
     await shot('voice-review'); issues += report(await audit('review')); await p.click('#rapprove'); await p.waitForTimeout(1200);
     await p.click('#app [data-act=label]'); await p.waitForTimeout(500); await p.click('#lex'); await p.click('#lgo'); await p.waitForTimeout(800); await shot('label-review'); await p.click('.sheet [data-close]'); await p.waitForTimeout(500);
-    for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab)); }
+    await p.click('#app [data-coach-pick="0"]'); await p.waitForTimeout(700); console.log('coach tile pick opens review:', !!(await p.$('.sheet.on #rapprove'))); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+    await p.click('#app [data-coach="open"]'); await p.waitForTimeout(900); console.log('coach tile opens coach view; tab on:', await p.$eval('#tabbar [data-tab=coach]', x => x.classList.contains('on'))); await shot('coach-view-midnight'); issues += report(await audit('coach view'));
+    await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
+    for (const tab of ['nutrients', 'progress', 'awards', 'coach']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab)); }
     await setLook(p, { theme: 'daylight' }); await p.reload(); await p.waitForTimeout(900);
-    for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab + ' daylight')); }
+    for (const tab of ['nutrients', 'progress', 'awards', 'coach']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab + ' daylight')); }
+    await shot('coach-view-daylight');
     await shot('daylight-awards');
     // reduce motion via OS setting
     const c2 = await b.newContext({ viewport: { width: 393, height: 852 }, reducedMotion: 'reduce' }); const p2 = await c2.newPage();
     p2.on('pageerror', e => errs.push('pageerror ' + e.message)); p2.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
-    await p2.goto('http://127.0.0.1:8765/'); await p2.waitForTimeout(800); console.log('OS reduce-motion respected:', await p2.evaluate(() => document.documentElement.dataset.motion));
+    await p2.goto(BASE); await p2.waitForTimeout(800); console.log('OS reduce-motion respected:', await p2.evaluate(() => document.documentElement.dataset.motion));
     // no flash: theme attribute already set at DOMContentLoaded
     await p2.evaluate(() => localStorage.setItem('fuel.look', JSON.stringify({ theme: 'paper' })));
     await p2.addInitScript(() => document.addEventListener('DOMContentLoaded', () => { window.__firstTheme = document.documentElement.dataset.theme + '|' + getComputedStyle(document.body).backgroundColor; }));

@@ -46,12 +46,12 @@ var THEMES = {
   paper:    { name: 'Paper', mode: 'light', bg: '#f4eee4', surface: '#fffdf8', surface2: '#ebe2d3', text: '#1d1712', mut: '#574b41', dim: '#665a50', accent: '#c2410c', glow: 0 },
 };
 /* ---- tile palettes (Today "Tiles" layout) ---- */
-var TILE_KEYS = [['say', 'Say it'], ['label', 'Read the label'], ['kcal', 'Calories'], ['protein', 'Protein'], ['water', 'Water'], ['carbs', 'Carbs'], ['fat', 'Fat'], ['items', 'My items'], ['micro', 'Micros'], ['score', 'Score'], ['focus', 'Focus nutrients']];
+var TILE_KEYS = [['say', 'Say it'], ['label', 'Read the label'], ['kcal', 'Calories'], ['protein', 'Protein'], ['water', 'Water'], ['carbs', 'Carbs'], ['fat', 'Fat'], ['items', 'My items'], ['micro', 'Micros'], ['score', 'Score'], ['coach', 'Coach'], ['focus', 'Focus nutrients']];
 var PALETTES = {
-  vivid:  { name: 'Vivid', c: { say: '#16a34a', label: '#7c3aed', kcal: '#ea580c', protein: '#e11d48', water: '#0284c7', carbs: '#facc15', fat: '#c026d3', items: '#0f766e', micro: '#4f46e5', score: '#a3e635', focus: '#334155' } },
-  neon:   { name: 'Neon', c: { say: '#22c55e', label: '#a855f7', kcal: '#fb923c', protein: '#fb7185', water: '#38bdf8', carbs: '#fde047', fat: '#e879f9', items: '#2dd4bf', micro: '#818cf8', score: '#bef264', focus: '#94a3b8' } },
-  pastel: { name: 'Pastel', c: { say: '#86efac', label: '#c4b5fd', kcal: '#fdba74', protein: '#fda4af', water: '#7dd3fc', carbs: '#fde68a', fat: '#f0abfc', items: '#5eead4', micro: '#a5b4fc', score: '#d9f99d', focus: '#cbd5e1' } },
-  jewel:  { name: 'Jewel', c: { say: '#166534', label: '#5b21b6', kcal: '#9a3412', protein: '#9f1239', water: '#075985', carbs: '#854d0e', fat: '#86198f', items: '#115e59', micro: '#3730a3', score: '#3f6212', focus: '#1e293b' } },
+  vivid:  { name: 'Vivid', c: { say: '#16a34a', label: '#7c3aed', kcal: '#ea580c', protein: '#e11d48', water: '#0284c7', carbs: '#facc15', fat: '#c026d3', items: '#0f766e', micro: '#4f46e5', score: '#a3e635', coach: '#0e7490', focus: '#334155' } },
+  neon:   { name: 'Neon', c: { say: '#22c55e', label: '#a855f7', kcal: '#fb923c', protein: '#fb7185', water: '#38bdf8', carbs: '#fde047', fat: '#e879f9', items: '#2dd4bf', micro: '#818cf8', score: '#bef264', coach: '#22d3ee', focus: '#94a3b8' } },
+  pastel: { name: 'Pastel', c: { say: '#86efac', label: '#c4b5fd', kcal: '#fdba74', protein: '#fda4af', water: '#7dd3fc', carbs: '#fde68a', fat: '#f0abfc', items: '#5eead4', micro: '#a5b4fc', score: '#d9f99d', coach: '#a5f3fc', focus: '#cbd5e1' } },
+  jewel:  { name: 'Jewel', c: { say: '#166534', label: '#5b21b6', kcal: '#9a3412', protein: '#9f1239', water: '#075985', carbs: '#854d0e', fat: '#86198f', items: '#115e59', micro: '#3730a3', score: '#3f6212', coach: '#164e63', focus: '#1e293b' } },
   mono:   { name: 'Accent', c: null },
 };
 function load() { var o = {}; try { o = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {} var r = {}; for (var k in DEF) r[k] = o[k] == null ? (typeof DEF[k] === 'object' && DEF[k] ? {} : DEF[k]) : o[k]; if (!THEMES[r.theme] && r.theme !== 'auto') r.theme = DEF.theme; if (!PALETTES[r.palette]) r.palette = DEF.palette; return r; }

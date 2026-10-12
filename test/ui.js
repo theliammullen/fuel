@@ -49,7 +49,7 @@ const SS = '/workspace/nutrition-app/screenshots/';
   await p.screenshot({ path: SS + '4-food-detail.png' });
   await p.click('#fadd'); await p.waitForTimeout(1000);
   // nutrient detail
-  await p.waitForTimeout(3500); await p.click('.tile[data-nut=vitD]'); await p.waitForTimeout(900);
+  await p.waitForTimeout(3500); await p.click('#app [data-nut=vitD]'); await p.waitForTimeout(900);
   await p.screenshot({ path: SS + '5-nutrient-info.png' });
   await p.click('.sheet [data-close]'); await p.waitForTimeout(500);
   // nutrients tab
@@ -109,7 +109,7 @@ const SS = '/workspace/nutrition-app/screenshots/';
   console.log('save&log: entries', e0, '->', await nEnt(), '| custom', await p.evaluate(() => __fuel.S().customFoods.map(c => c.name + ' ' + c.servingG + 'g kcal/100g=' + c.n100.kcal).join(';')), '| fav', await p.evaluate(() => __fuel.S().favs.some(f => /Kirkland/.test(f.name))));
   await p.waitForTimeout(6500);
   // ---- MY ITEMS one-tap ----
-  await p.evaluate(() => document.querySelector('.qgrid').closest('.card').scrollIntoView({ block: 'center' })); await p.waitForTimeout(400);
+  await p.evaluate(() => document.querySelector('.qgrid, .qrow').closest('.card, .tl').scrollIntoView({ block: 'center' })); await p.waitForTimeout(400);
   await p.screenshot({ path: SS + '10-my-items.png' });
   console.log('my items', await p.$$eval('.qi .qn', x => x.map(i => i.innerText).join(' | ')));
   const e1 = await nEnt();
