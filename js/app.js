@@ -115,6 +115,7 @@ function impliedZeros(n) {
 const SUPPS = [
   { id: 'd1000', name: 'Vitamin D3 1000 IU (25 µg)', n: { vitD: 25 } },
   { id: 'd2000', name: 'Vitamin D3 2000 IU (50 µg)', n: { vitD: 50 } },
+  { id: 'd10000', name: 'Vitamin D3 10,000 IU (250 µg)', pl: '1 softgel', n: { vitD: 250 } },
   { id: 'fish1', name: 'Fish oil softgel, 1 g (≈180 EPA / 120 DHA)', n: { kcal: 9, fat: 1, epa: 180, dha: 120, polyFat: 0.35 } },
   { id: 'fish3', name: 'Concentrated fish oil, 1 tsp (≈650 EPA / 450 DHA)', n: { kcal: 40, fat: 4.5, epa: 650, dha: 450, polyFat: 1.6 } },
   { id: 'algae', name: 'Algae omega-3 softgel (≈300 DHA / 150 EPA)', n: { kcal: 9, fat: 1, epa: 150, dha: 300 } },
@@ -1610,8 +1611,13 @@ function portionText(qty, label, g) {
   const rest = m[2], tot = base * qty;
   const mu = rest.match(/^(g|ml|oz|fl oz|lb|kg|l)\b(.*)$/i);
   if (mu) { const v = /^(g|ml)$/i.test(mu[1]) ? fmt(Math.round(tot)) : fmt(tot, 1); return v + ' ' + mu[1] + mu[2] + (/^g$/i.test(mu[1]) ? '' : tail); }
+  // under ¼ cup reads better in tablespoons (½ × '¼ cup' → '2 tbsp', not '¼ cup'); other units that small keep the × form
+  if (tot < 0.245 && tot * 16 >= 0.75 && /^cups?\b/i.test(rest)) { const tb = Math.round(tot * 16 * 2) / 2; return fracText(tb) + ' tbsp' + rest.replace(/^cups?/i, '') + tail; }
+  if (tot < 0.245) return fmt(qty, 2) + ' × ' + label + tail;
   const num = fracText(tot), many = Math.round(tot * 4) / 4 > 1;
-  const words = rest.split(' '); words[0] = plural(words[0], many);
+  // pluralise the noun, not a leading size word: '2 small cans, drained', '2 medium bananas', '2 cups cooked'
+  const words = rest.split(' '); const ni = words.findIndex(w => { const a = (w.match(/^[a-z]+/i) || [''])[0].toLowerCase(); return a && !NOPL.has(a); });
+  if (ni >= 0 && !/^(of|with|and)$/i.test(words[ni])) words[ni] = plural(words[ni], many);
   return (num + ' ' + words.join(' ')).trim() + tail;
 }
 /* ---------- one-tap "My items" ---------- */

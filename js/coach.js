@@ -124,7 +124,7 @@ function aimFor(k, T, dflt) { const tg = T[k]; if (!tg) return null; return cust
 function capFor(k, T, supp) {
   const tg = T[k], x = BY[k]; if (!tg || !tg.ul || tg.ulSoft || !x) return null;
   if (x.ulNote && !supp) return null;
-  return customGoal(k) && tg.goal > tg.ul ? tg.goal : tg.ul;
+  return customGoal(k) && tg.goal > tg.ul ? tg.goal * (1 + SUPP_RULE.goalTol) : tg.ul;
 }
 /* goals the user set above the general UL → one neutral line in the Coach */
 function aboveUL(T) { return N.filter(x => customGoal(x.key) && T[x.key] && T[x.key].ul && !T[x.key].ulSoft && T[x.key].goal > T[x.key].ul).map(x => x.key); }
@@ -186,10 +186,16 @@ function mine() {
      3. the dose keeps every cap (sodium/sat fat/added sugar/caffeine, ULs) and doesn't pass the user's own goal.
    The user's own saved supplements (favourites, recent, label-scanned) come first, then the app's generic ones.
    Gaps that food can easily fill (e.g. omega-3 when salmon fits, magnesium when pumpkin seeds fit) get food only. */
-const SUPP_RULE = { minGap: 0.2, foodOk: 0.5, maxServ: 4 };
-const GENERIC_SUPPS = ['creatine', 'd2000', 'd1000', 'fish1', 'algae', 'mg200'];   // no whey (a food staple), multi, caffeine or electrolyte mixes
+const SUPP_RULE = { minGap: 0.2, foodOk: 0.5, maxServ: 4, goalTol: 0.1 };   // goalTol: a dose may land ≤ 10% past a goal (food intake is approximate), e.g. 1 × 250 µg on top of 12 µg from food
+const GENERIC_SUPPS = ['creatine', 'd10000', 'd2000', 'd1000', 'fish1', 'algae', 'mg200'];   // no whey (a food staple), multi, caffeine or electrolyte mixes
 const SUPP_RE = /supplement|creatine|vitamin|\bd3\b|softgel|capsule|tablet|fish oil|omega-?3|magnesium|multivitamin/i;
 function servKcal(it) { const g = it.servingG || (it.portions && it.portions[0] && it.portions[0][1]) || 100; return (it.n100.kcal || 0) * g / 100; }
+/* a logged entry that is a supplement (same test as isSupp, on the entry's stored nutrients) */
+function entryIsSupp(e) {
+  const kc = (e.n && e.n.kcal) || 0;
+  if (String(e.key || '').startsWith('sup:')) return e.key !== 'sup:whey';   // every generic supplement except whey (a food here)
+  return e.src === 'cus' && SUPP_RE.test(e.name || '') && kc < 20;
+}
 function isSupp(it) {
   if (!it || !it.n100) return false;
   if (String(it.key || '').startsWith('sup:')) return servKcal(it) < 50;          // whey (113 kcal) stays a food
@@ -245,13 +251,14 @@ function suggestSupps(M, acc, budget, foodPool, limit = 3) {
       const prim = Object.keys(M.gaps).filter(k => (one[k] || 0) > 0).sort((x, y) => (one[y] / M.gaps[y].tgt) - (one[x] / M.gaps[x].tgt))[0];
       if (prim !== g.k) continue;
       const room = (aimFor(g.k, M.T, g.tgt) || g.tgt) - (M.t[g.k] || 0) - (acc2[g.k] || 0);   // never past the user's goal
-      let nServ = Math.max(1, Math.min(SUPP_RULE.maxServ, Math.floor((g.rem + dose * 0.1) / dose)));
-      while (nServ > 1 && dose * nServ > room + 1e-9) nServ--;
-      if (dose > room + dose * 0.1) continue;
+      const tol = SUPP_RULE.goalTol * g.tgt;
+      let nServ = Math.max(1, Math.min(SUPP_RULE.maxServ, Math.floor((g.rem + tol) / dose)));
+      while (nServ > 1 && dose * nServ > room + tol + 1e-9) nServ--;
+      if (dose > room + tol) continue;
       const n = nOf(c.it, c.g * nServ);
       const e = evalN(n, M, acc2, true); if (e.viol.length) continue;
       if ((n.kcal || 0) > Math.max(budget, 15) + 10) continue;
-      const sc = (c.own ? 2 : 1) + Math.min(n[g.k], g.rem) / g.rem;     // own supplements first, then best fit
+      const sc = (c.own ? 2 : 1) + Math.min(n[g.k], g.rem) / g.rem - 0.05 * nServ;     // own supplements first, then best fit, then fewest servings
       if (!best || sc > best.sc) best = { c, nServ, n, e, sc };
     }
     if (!best) continue;
@@ -282,7 +289,9 @@ function gapModel(ds) {
   // any other nutrient with a user-chosen goal (e.g. creatine 10 g)
   N.forEach(x => { if (!gaps[x.key] && x.type === 'target' && customGoal(x.key) && T[x.key]) add(x.key, T[x.key].goal, 0.5); });
   const kcalLeft = Math.round(T.kcal.goal - (t.kcal || 0));
-  return { ds, T, t, gaps, kcalLeft, waterLeft: Math.max(0, Math.round(T.water.goal - (t.water || 0))), coverage: tot.coverage, count: tot.count };
+  // supplement totals already logged today → supplement-only ULs (folic acid, niacin, vit E, preformed A) include them
+  const suppT = {}; const dd = a.S().days[ds]; ((dd && dd.entries) || []).filter(entryIsSupp).forEach(e => addTo(suppT, e.n || {}));
+  return { ds, T, t, gaps, suppT, kcalLeft, waterLeft: Math.max(0, Math.round(T.water.goal - (t.water || 0))), coverage: tot.coverage, count: tot.count };
 }
 /* value of adding nutrients n on top of what's eaten (+acc from earlier picks) */
 function evalN(n, M, acc, supp) {
@@ -298,7 +307,7 @@ function evalN(n, M, acc, supp) {
   N.forEach(x => {
     const v = n[x.key] || 0; if (v <= 0) return; const cap = capFor(x.key, T, supp); if (cap == null) return;
     // ulNote ULs apply to the supplement dose itself (food folate/niacin/vit E/carotenoids don't count toward them)
-    const tot = x.ulNote ? (acc['_s_' + x.key] || 0) + v : (t[x.key] || 0) + (acc[x.key] || 0) + v;
+    const tot = x.ulNote ? ((M.suppT || {})[x.key] || 0) + (acc['_s_' + x.key] || 0) + v : (t[x.key] || 0) + (acc[x.key] || 0) + v;
     if (tot > cap) viol.push(x.key);
   });
   // soft penalties: sodium & saturated fat eat into today's allowance
@@ -709,6 +718,6 @@ function afterRender(app, view) {
   if (anchor) anchor.after(card);
   else { const meal = app.querySelector('.meal'); if (meal) meal.before(card); else (app.querySelector('.view') || app).appendChild(card); }
 }
-G.FuelCoach = { views: { coach: renderCoach }, afterRender, todayCard, suggest, suggestSupps, mealIdeas, analyse, takeaways, staples, STAPLES, MEALS_T, gapModel, customGoal, capFor, aboveUL, SUPP_RULE, _ui: UI };
+G.FuelCoach = { views: { coach: renderCoach }, afterRender, todayCard, suggest, suggestSupps, mealIdeas, analyse, takeaways, staples, STAPLES, MEALS_T, gapModel, customGoal, capFor, aboveUL, SUPP_RULE, evalN, nOf, _ui: UI };
 if (G.__fuel) G.__fuel.render();
 })(window);

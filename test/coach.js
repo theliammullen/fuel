@@ -119,8 +119,20 @@ const OUT = __dirname + '/../screenshots/coach/';
   console.log(JSON.stringify(sp, null, 1));
   ok(sp.supps.length && sp.supps[0].key === 'sup:creatine' && sp.supps[0].own, "user's own saved supplement (Creatine monohydrate scoop) is suggested first");
   ok(sp.supps.some(x => x.k === 'vitD' && !x.own), 'generic vitamin D supplement suggested for a goal food cannot reach');
-  ok(sp.supps.every(x => x.have + x.amt <= x.goal + 1e-6 && x.viol === 0), 'supplement doses stay within the user goal and every cap');
+  ok(sp.supps.every(x => x.have + x.amt <= x.goal * 1.1 + 1e-6 && x.viol === 0), 'supplement doses stay within the user goal and every cap');
   ok(sp.supps.every(x => ['creatine', 'vitD'].includes(x.k)), 'no supplement for gaps food can fill (omega-3, magnesium, potassium, calcium …)');
+  const d10 = sp.supps.find(x => x.k === 'vitD');
+  ok(d10 && d10.key === 'sup:d10000' && d10.label === '1 softgel' && d10.amt === 250, 'vitamin D 250 µg goal → 1 × Vitamin D3 10,000 IU softgel (' + (d10 && d10.label) + ')');
+  // supplement-only ULs count supplements already logged today (folic acid UL 1000 µg)
+  const sul = await p.evaluate(() => { const F = __fuel, C = FuelCoach; const multi = F.suppItem(F.SUPPS.find(x => x.id === 'multi')); const n = C.nOf(multi, 1);
+    const d = F.S().days[F.cur()]; const v = () => C.evalN(n, C.gapModel(F.cur()), {}, true).viol.includes('folate');
+    const r = { none: v() }; d.entries.push({ id: 'fa1', key: 'x', name: 'Fortified cereal', src: 0, meal: 'snacks', g: 1, n: { folate: 700 }, t: Date.now() }); r.food = v(); d.entries.pop();
+    d.entries.push({ id: 'fa2', key: 'sup:multi', name: multi.name, src: 'sup', meal: 'snacks', g: 1, n: { folate: 700 }, t: Date.now() }); r.supp = v(); d.entries.pop(); return r; });
+  ok(!sul.none && !sul.food && sul.supp, 'folic-acid UL counts supplements logged today (not food folate): ' + JSON.stringify(sul));
+  // portion text plurals
+  const pt = await p.evaluate(() => { const f = __fuel.portionText; return [f(2, '1 small can, drained (85 g)', 170), f(0.5, '¼ cup (28 g)', 14), f(1.5, '1 cup cooked', 297), f(2, '1 medium', 346), f(2, '2 large eggs (100 g)', 200), f(2, '1 scoop', 10), f(0.5, '1 cup', 83)]; });
+  console.log(pt.join(' | '));
+  ok(pt[0] === '2 small cans, drained (170 g)' && pt[1] === '2 tbsp (14 g)' && pt[2] === '1½ cups cooked (297 g)' && pt[3] === '2 medium (346 g)' && pt[4] === '4 large eggs (200 g)' && pt[5] === '2 scoops (10 g)' && pt[6] === '½ cup (83 g)', 'portion text plurals & small cup amounts');
   await p.click('[data-coach-tab="next"]'); await p.waitForTimeout(400);
   const badge = await p.evaluate(() => [...document.querySelectorAll('.co-g-supp')].map(e => e.textContent.trim()));
   ok(badge.length === sp.supps.length && badge.every(t => /Supplement/.test(t)), 'supplement rows carry a Supplement badge');
