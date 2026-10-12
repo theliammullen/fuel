@@ -1,6 +1,6 @@
 /* Fuel service worker — offline app shell + food database. Bump VERSION to ship updates. */
-const VERSION = 'fuel-v1.4.1';
-const SHELL = ['./','index.html','css/app.css','css/themes.css','js/theme-boot.js','js/nutrients.js','js/appearance.js','js/app.js','js/coach.js','css/coach.css','manifest.webmanifest',
+const VERSION = 'fuel-v1.4.2';
+const SHELL = ['./','index.html','css/app.css','css/themes.css','js/theme-boot.js','img/wood-light.jpg','img/wood-dark.jpg','js/nutrients.js','js/appearance.js','js/app.js','js/coach.js','css/coach.css','manifest.webmanifest',
   'icons/icon-180.png','icons/icon-192.png','icons/icon-512.png','icons/favicon-32.png','data/foods.json','vendor/zxing.min.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

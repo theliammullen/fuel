@@ -3,7 +3,7 @@
 (function () {
 'use strict';
 var KEY = 'fuel.look';
-var DEF = { theme: 'midnight', accent: null, layout: 'tiles', density: 'comfortable', motion: null, palette: 'vivid', tiles: {} };
+var DEF = { theme: 'midnight', kitchenMode: 'auto', accent: null, layout: 'tiles', density: 'comfortable', motion: null, palette: null, tiles: {} }; // palette null = the theme's default
 /* ---- colour maths ---- */
 function hex2rgb(h) { h = String(h || '').replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&'); var n = parseInt(h.slice(0, 6), 16); return isNaN(n) ? [0, 0, 0] : [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function rgb2hex(c) { return '#' + c.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
@@ -44,7 +44,11 @@ var THEMES = {
   oled:     { name: 'OLED Black', mode: 'dark', bg: '#000000', surface: '#0e0e10', surface2: '#1a1a1d', text: '#ffffff', mut: '#ababb3', dim: '#93939b', accent: '#22d3ee', glow: 0 },
   daylight: { name: 'Daylight', mode: 'light', bg: '#eef0f6', surface: '#ffffff', surface2: '#e4e7f0', text: '#0f1222', mut: '#464d6b', dim: '#575e7a', accent: '#5b3df5', glow: 0.25 },
   paper:    { name: 'Paper', mode: 'light', bg: '#f4eee4', surface: '#fffdf8', surface2: '#ebe2d3', text: '#1d1712', mut: '#574b41', dim: '#665a50', accent: '#c2410c', glow: 0 },
+  /* Kitchen family: stone + frosted glass + wood (textures and glass live in css/themes.css). surface = glass over stone, for contrast maths */
+  'kitchen-light': { name: 'Kitchen Light', family: 'kitchen', mode: 'light', bg: '#ece4d6', surface: '#f7f2e9', surface2: '#e6dccb', text: '#1f1810', mut: '#55452f', dim: '#655440', accent: '#e8590c', accent2: '#e03170', glow: 0, palette: 'kitchen' },
+  'kitchen-dark':  { name: 'Kitchen Dark', family: 'kitchen', mode: 'dark', bg: '#161311', surface: '#25201c', surface2: '#312a24', text: '#f7efe4', mut: '#cdbda8', dim: '#b1a18d', accent: '#f59f00', accent2: '#ff7a3d', glow: 0, palette: 'kitchen' },
 };
+var FAMILIES = { kitchen: { name: 'Kitchen', light: 'kitchen-light', dark: 'kitchen-dark' } };
 /* ---- tile palettes (Today "Tiles" layout) ---- */
 var TILE_KEYS = [['say', 'Say it'], ['label', 'Read the label'], ['kcal', 'Calories'], ['protein', 'Protein'], ['water', 'Water'], ['carbs', 'Carbs'], ['fat', 'Fat'], ['items', 'My items'], ['micro', 'Micros'], ['score', 'Score'], ['coach', 'Coach'], ['focus', 'Focus nutrients']];
 var PALETTES = {
@@ -52,14 +56,23 @@ var PALETTES = {
   neon:   { name: 'Neon', c: { say: '#22c55e', label: '#a855f7', kcal: '#fb923c', protein: '#fb7185', water: '#38bdf8', carbs: '#fde047', fat: '#e879f9', items: '#2dd4bf', micro: '#818cf8', score: '#bef264', coach: '#22d3ee', focus: '#94a3b8' } },
   pastel: { name: 'Pastel', c: { say: '#86efac', label: '#c4b5fd', kcal: '#fdba74', protein: '#fda4af', water: '#7dd3fc', carbs: '#fde68a', fat: '#f0abfc', items: '#5eead4', micro: '#a5b4fc', score: '#d9f99d', coach: '#a5f3fc', focus: '#cbd5e1' } },
   jewel:  { name: 'Jewel', c: { say: '#166534', label: '#5b21b6', kcal: '#9a3412', protein: '#9f1239', water: '#075985', carbs: '#854d0e', fat: '#86198f', items: '#115e59', micro: '#3730a3', score: '#3f6212', coach: '#164e63', focus: '#1e293b' } },
+  kitchen:    { name: 'Kitchen Vivid', c: { say: '#10b981', label: '#6366f1', kcal: '#f97316', protein: '#f43f5e', water: '#0ea5e9', carbs: '#fbbf24', fat: '#d946ef', items: '#14b8a6', micro: '#8b5cf6', score: '#a3e635', coach: '#06b6d4', focus: '#57534e' } },
+  harmonised: { name: 'Harmonised', c: { say: '#7f9c74', label: '#7b3f61', kcal: '#c4623f', protein: '#a8403f', water: '#1f6f78', carbs: '#d4a72c', fat: '#8e4f78', items: '#2f6f5e', micro: '#56608f', score: '#b3a347', coach: '#3d7f8a', focus: '#6b5b4e' } },
   mono:   { name: 'Accent', c: null },
 };
-function load() { var o = {}; try { o = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {} var r = {}; for (var k in DEF) r[k] = o[k] == null ? (typeof DEF[k] === 'object' && DEF[k] ? {} : DEF[k]) : o[k]; if (!THEMES[r.theme] && r.theme !== 'auto') r.theme = DEF.theme; if (!PALETTES[r.palette]) r.palette = DEF.palette; return r; }
+function load() { var o = {}; try { o = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {} var r = {}; for (var k in DEF) r[k] = o[k] == null ? (typeof DEF[k] === 'object' && DEF[k] ? {} : DEF[k]) : o[k]; if (!THEMES[r.theme] && r.theme !== 'auto' && !FAMILIES[r.theme]) r.theme = DEF.theme; if (!PALETTES[r.palette]) r.palette = null; if (['auto', 'light', 'dark'].indexOf(r.kitchenMode) < 0) r.kitchenMode = 'auto'; return r; }
 var mqDark = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 var mqMotion = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
-function themeId(L) { return L.theme === 'auto' ? (mqDark && !mqDark.matches ? 'daylight' : 'midnight') : L.theme; }
+var sysDark = function () { return !(mqDark && !mqDark.matches); };
+function themeId(L) {
+  if (L.theme === 'auto') return sysDark() ? 'midnight' : 'daylight';
+  var F = FAMILIES[L.theme]; if (F) { var m = L.kitchenMode === 'auto' ? (sysDark() ? 'dark' : 'light') : L.kitchenMode; return F[m === 'light' ? 'light' : 'dark']; }
+  return L.theme;
+}
+/* palette in effect: the user's choice, else the theme's own default (Kitchen → Kitchen Vivid), else Vivid */
+function paletteId(L) { return L.palette && PALETTES[L.palette] ? L.palette : (THEMES[themeId(L)].palette || 'vivid'); }
 function tilesFor(L, T, acc) {
-  var src = PALETTES[L.palette] && PALETTES[L.palette].c, out = {};
+  var src = PALETTES[paletteId(L)].c, out = {};
   TILE_KEYS.forEach(function (tk, i) {
     var k = tk[0], c = (L.tiles && L.tiles[k]) || (src ? src[k] : null);
     if (!c) { var h = rgb2hsl(acc); c = hsl2hex(h[0] + (i * 29) % 120 - 40, Math.max(0.45, h[1]), 0.36 + (i % 4) * 0.08); }
@@ -72,7 +85,7 @@ function compute(L) {
   var id = themeId(L), T = THEMES[id], dark = T.mode === 'dark', S = dark ? DARK_SEM : LIGHT_SEM;
   var acc = /^#[0-9a-f]{6}$/i.test(L.accent || '') ? L.accent : T.accent;
   var accText = ensure(acc, [T.bg, T.surface, T.surface2], 4.5);
-  var h = rgb2hsl(acc), acc2 = hsl2hex(h[0] + 32, h[1], h[2]);
+  var h = rgb2hsl(acc), acc2 = acc === T.accent && T.accent2 ? T.accent2 : hsl2hex(h[0] + 32, h[1], h[2]);
   // primary button / FAB gradient: both stops must give AA with the chosen ink
   var b1 = onColor(acc), b2fill = b1.on === WHITE ? ensure(acc2, [WHITE], 4.5) : ensure(acc2, [INK], 4.5);
   if (contrast(b1.on, b2fill) < 4.5) b2fill = b1.fill;
@@ -89,14 +102,16 @@ function compute(L) {
     '--k-kcal': S.kKcal, '--k-pro': S.kPro, '--k-carb': S.kCarb, '--k-fat': S.kFat,
   };
   ['--s-good', '--s-gold', '--s-warn', '--s-bad', '--s-cyan', '--s-violet', '--s-water', '--k-kcal', '--k-pro', '--k-carb', '--k-fat'].forEach(function (k) { v[k] = ensure(v[k], [T.bg, T.surface, T.surface2], 4.6); });
-  TILE_KEYS.forEach(function (tk) { v['--t-' + tk[0]] = tiles[tk[0]].fill; v['--t-' + tk[0] + '-on'] = tiles[tk[0]].on; });
+  TILE_KEYS.forEach(function (tk) { v['--t-' + tk[0]] = tiles[tk[0]].fill; v['--t-' + tk[0] + '-on'] = tiles[tk[0]].on;
+    /* chip/button wash that moves AWAY from the ink, so text on in-tile chips keeps (and gains) contrast */
+    v['--t-' + tk[0] + '-sh'] = contrast(tiles[tk[0]].on, '#000') > 10 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.36)'; });
   var reduce = L.motion == null ? !!(mqMotion && mqMotion.matches) : !!L.motion;
-  return { L: L, id: id, theme: T, mode: T.mode, vars: v, reduce: reduce, tiles: tiles };
+  return { L: L, id: id, theme: T, mode: T.mode, family: T.family || '', palette: paletteId(L), vars: v, reduce: reduce, tiles: tiles };
 }
 function apply(L) {
   var C = compute(L), de = document.documentElement, st = de.style;
   for (var k in C.vars) st.setProperty(k, C.vars[k]);
-  de.setAttribute('data-theme', C.id); de.setAttribute('data-mode', C.mode);
+  de.setAttribute('data-theme', C.id); de.setAttribute('data-mode', C.mode); de.setAttribute('data-family', C.family || 'core');
   de.setAttribute('data-layout', C.L.layout || 'tiles'); de.setAttribute('data-density', C.L.density || 'comfortable');
   de.setAttribute('data-motion', C.reduce ? 'reduce' : 'full');
   st.colorScheme = C.mode;
@@ -105,12 +120,12 @@ function apply(L) {
 }
 function save(patch) { var L = load(); for (var k in patch) L[k] = patch[k]; try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) {} return apply(L); }
 var listeners = [];
-function onSystem() { var L = load(); if (L.theme === 'auto' || L.motion == null) { apply(L); listeners.forEach(function (f) { f(); }); } }
+function onSystem() { var L = load(); if (L.theme === 'auto' || (FAMILIES[L.theme] && L.kitchenMode === 'auto') || L.motion == null) { apply(L); listeners.forEach(function (f) { f(); }); } }
 [mqDark, mqMotion].forEach(function (mq) { if (mq) (mq.addEventListener ? mq.addEventListener('change', onSystem) : mq.addListener(onSystem)); });
-var TONE = { vivid: 0.42, neon: 0.6, pastel: 0.8, jewel: 0.28 };
+var TONE = { vivid: 0.42, neon: 0.6, pastel: 0.8, jewel: 0.28, kitchen: 0.44, harmonised: 0.4 };
 /* colour for a "focus nutrient" tile, derived from the nutrient's own hue so each tile differs, toned to the palette */
-function nutrientTile(hex) { var L = load(); if ((L.tiles && L.tiles.focus) || !TONE[L.palette]) return null; var h = rgb2hsl(hex); return onColor(hsl2hex(h[0], Math.max(0.65, h[1]), TONE[L.palette])); }
-window.FuelTheme = { nutrientTile: nutrientTile, KEY: KEY, DEF: DEF, THEMES: THEMES, PALETTES: PALETTES, TILE_KEYS: TILE_KEYS, load: load, save: save, apply: apply, compute: compute,
+function nutrientTile(hex) { var L = load(), P = paletteId(L); if ((L.tiles && L.tiles.focus) || !TONE[P]) return null; var h = rgb2hsl(hex); return onColor(hsl2hex(h[0], P === 'harmonised' ? Math.min(0.42, h[1]) : Math.max(0.65, h[1]), TONE[P])); }
+window.FuelTheme = { nutrientTile: nutrientTile, FAMILIES: FAMILIES, paletteId: paletteId, themeId: themeId, KEY: KEY, DEF: DEF, THEMES: THEMES, PALETTES: PALETTES, TILE_KEYS: TILE_KEYS, load: load, save: save, apply: apply, compute: compute,
   contrast: contrast, onColor: onColor, ensure: ensure, mix: mix, onChange: function (f) { listeners.push(f); },
   reduced: function () { return document.documentElement.getAttribute('data-motion') === 'reduce'; } };
 apply();

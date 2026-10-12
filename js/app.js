@@ -1734,7 +1734,7 @@ function openProfile() {
     <input type="file" id="impf" accept="application/json,.json" class="hidden">
     <div class="tiny mut" style="margin:10px 0">Everything lives on this phone only. Export regularly (e.g. save to Files/iCloud). Food data: ${DB ? fmt(DB.foods.length) + ' foods — ' : ''}USDA FoodData Central (Foundation, SR Legacy, FNDDS), Health Canada CNF 2015, Open Food Facts. No paid services, no accounts, no API keys.</div>
     <button class="btn danger block" id="wipe">Erase all data</button></div>
-   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.4.1 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
+   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.4.2 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
   const rec = openSheet('Profile & settings', html, { full: true, onClose: () => { invalidate(); render(); } });
   const sh = rec.sh;
   if (window.FuelLook) FuelLook.bind(sh, () => render());

@@ -20,8 +20,16 @@ function section() {
   var L = F.load(), C = F.compute(L), html = '';
   html += '<div class="card" id="lookcard"><h2>Appearance</h2>';
   html += '<div class="field"><label>Theme</label><div class="swatches">' + themeSwatch('auto', null, L.theme === 'auto');
-  Object.keys(F.THEMES).forEach(function (id) { html += themeSwatch(id, F.THEMES[id], L.theme === id); });
-  html += '</div></div>';
+  Object.keys(F.THEMES).forEach(function (id) { if (!F.THEMES[id].family) html += themeSwatch(id, F.THEMES[id], L.theme === id); });
+  Object.keys(F.FAMILIES).forEach(function (fid) { var on = L.theme === fid;
+    html += '<button class="sw kit' + (on ? ' on' : '') + '" data-look-theme="' + fid + '" aria-pressed="' + on + '"><b>' + esc(F.FAMILIES[fid].name) + '</b><span class="dots"><i style="background:' + F.THEMES[F.FAMILIES[fid].light].accent + '"></i><i style="background:' + F.THEMES[F.FAMILIES[fid].dark].accent + '"></i><i style="background:#c9a24a"></i></span></button>'; });
+  html += '</div>';
+  if (F.FAMILIES[L.theme]) {
+    var km = L.kitchenMode || 'auto';
+    html += '<div class="prow" style="margin-top:10px"><div><b style="font-size:14px">' + esc(F.FAMILIES[L.theme].name) + ' mode</b><div class="mut small">' + (km === 'auto' ? 'Auto follows your iPhone’s Light/Dark setting · now ' + (C.mode === 'dark' ? 'Dark' : 'Light') : km === 'light' ? 'Pale oak & maple, cream stone, brass' : 'Walnut & smoked oak, charcoal stone, amber') + '</div></div></div>' +
+      '<div class="seg" id="lookKitMode" role="radiogroup" aria-label="Kitchen mode">' + [['light', '☀️ Light'], ['dark', '🌙 Dark'], ['auto', '◐ Auto']].map(function (m) { return '<button role="radio" aria-checked="' + (km === m[0]) + '" data-look-kit="' + m[0] + '" class="' + (km === m[0] ? 'on' : '') + '">' + m[1] + '</button>'; }).join('') + '</div>';
+  }
+  html += '</div>';
   html += '<div class="field"><label>Accent colour</label><div class="accs"><button class="acc' + (!L.accent ? ' on' : '') + '" data-look-acc="" aria-label="Theme default" style="background:' + F.onColor(C.theme.accent).fill + '"><span style="font-size:10px;font-weight:800;color:' + F.onColor(C.theme.accent).on + '">AUTO</span></button>';
   ACCENTS.forEach(function (a) { html += '<button class="acc' + (L.accent === a ? ' on' : '') + '" data-look-acc="' + a + '" aria-label="Accent ' + a + '" style="background:' + a + '"></button>'; });
   var custom = L.accent && ACCENTS.indexOf(L.accent) < 0;
@@ -32,8 +40,8 @@ function section() {
   html += '</div></div>';
   html += '<div class="field"><label>Tile colours</label><div class="swatches">';
   Object.keys(F.PALETTES).forEach(function (id) {
-    var P = F.PALETTES[id], tc = F.compute(Object.assign({}, L, { palette: id, tiles: {} })).tiles;
-    html += '<button class="sw' + (L.palette === id ? ' on' : '') + '" data-look-pal="' + id + '" style="background:var(--surface2);color:var(--text)"><b>' + esc(P.name) + '</b><span class="dots">' +
+    var P = F.PALETTES[id], tc = F.compute(Object.assign({}, L, { palette: id, tiles: {} })).tiles, on = C.palette === id;
+    html += '<button class="sw' + (on ? ' on' : '') + '" data-look-pal="' + id + '" aria-pressed="' + on + '" style="background:var(--surface2);color:var(--text)"><b>' + esc(P.name) + (on && !L.palette ? ' <span class="tiny mut" style="font-weight:600">· default</span>' : '') + '</b><span class="dots">' +
       ['say', 'kcal', 'protein', 'water', 'carbs'].map(function (k) { return '<i style="background:' + tc[k].fill + '"></i>'; }).join('') + '</span></button>';
   });
   html += '</div><details style="margin-top:10px"' + (Object.keys(L.tiles || {}).length ? ' open' : '') + '><summary class="mut small" style="padding:10px 0;font-weight:700;min-height:44px">Customise each tile</summary><div class="tcust">';
@@ -58,8 +66,9 @@ function bind(root, cb) {
     on('[data-look-acc]', 'click', function (el) { redraw({ accent: el.dataset.lookAcc || null }); });
     on('#lookAccPick', 'input', function (el) { F.save({ accent: el.value }); });
     on('#lookAccPick', 'change', function (el) { redraw({ accent: el.value }); });
+    on('[data-look-kit]', 'click', function (el) { redraw({ kitchenMode: el.dataset.lookKit }); });
     on('[data-look-layout]', 'click', function (el) { redraw({ layout: el.dataset.lookLayout }); });
-    on('[data-look-pal]', 'click', function (el) { redraw({ palette: el.dataset.lookPal, tiles: {} }); });
+    on('[data-look-pal]', 'click', function (el) { var id = el.dataset.lookPal; redraw({ palette: id === (F.THEMES[F.themeId(F.load())].palette || 'vivid') ? null : id, tiles: {} }); });
     on('[data-look-tile]', 'change', function (el) { var t = Object.assign({}, F.load().tiles); t[el.dataset.lookTile] = el.value; redraw({ tiles: t }); });
     on('#lookTileReset', 'click', function () { redraw({ tiles: {} }); });
     on('[data-look-density]', 'click', function (el) { redraw({ density: el.dataset.lookDensity }); });

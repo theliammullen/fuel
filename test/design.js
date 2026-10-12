@@ -3,6 +3,7 @@
 const { chromium } = require('/workspace/pwtest/node_modules/playwright-core');
 const OUT = '/workspace/nutrition-app/screenshots/design/';
 const QUICK = process.argv.includes('quick');
+const KONLY = process.argv.includes('kitchen'); // node test/design.js kitchen → only the Kitchen family block
 const BASE = process.env.FUEL_URL || 'http://127.0.0.1:8766/';
 const seed = async p => p.evaluate(async () => {
   await __fuel.loadDB(); const S = __fuel.S();
@@ -26,6 +27,7 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
   const ctx = await b.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: 'dark' });
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
+  if (process.env.PXDBG) await p.addInitScript(() => { window.__pxdbg = 1; });
   await p.goto(BASE); await p.waitForTimeout(800);
   await seed(p); await p.reload(); await p.waitForTimeout(1500);
   const shot = async (name, full) => { await p.waitForTimeout(1300); await p.screenshot({ path: OUT + name + '.png', fullPage: !!full }); console.log('shot', name); };
@@ -60,6 +62,48 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
       if (cr < (large ? 3 : 4.5)) fails.push(n.textContent.trim().slice(0, 24) + ' ' + cr.toFixed(2)); }
     return { label, small: [...new Set(small)], fails: [...new Set(fails)] };
   }, label);
+  /* pixel contrast audit for textures, glass and blur: hide all text, screenshot, then compare each text run's colour
+     against the 2nd/98th-percentile luminance of the real pixels behind it (worst case over wood grain / blurred content) */
+  const pixelAudit = async label => {
+    const items = await p.evaluate(() => {
+      const parse = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const a = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [a[0], a[1], a[2], a[3] == null ? 1 : a[3]]; };
+      // floating bottom bar + FAB: text scrolling *under* them or through their drop shadow mid-scroll is excluded (not a reading position)
+      const tb = document.getElementById('tabbar'), fb = document.getElementById('fab'), barTop = tb && !tb.closest('.hidden') ? tb.getBoundingClientRect().top - 6 : innerHeight, fr = fb ? fb.getBoundingClientRect() : null;
+      const underBar = (x, y, x2, y2) => y2 > barTop || (fr && x2 > fr.left - 14 && x < fr.right + 14 && y2 > fr.top - 14 && !document.querySelector('.sheet.on'));
+      const out = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) { const n = w.currentNode, txt = n.textContent.trim(); if (!txt) continue; const el = n.parentElement; if (!el || el.closest('svg,#confetti,.sw,.lay,.acc,.tcust,select,.hidden')) continue;
+        if (document.querySelector('.sheet.on') && !el.closest('.sheet')) continue; // behind a modal scrim
+        if (/^[\p{Extended_Pictographic}\s●★✦✓✎⋯+▦·•]+$/u.test(txt)) continue;
+        const cs = getComputedStyle(el); if (cs.visibility === 'hidden') continue; const c = parse(cs.color); if (!c || c[3] === 0) continue;
+        let op = 1; for (let e = el; e; e = e.parentElement) op *= +getComputedStyle(e).opacity; if (op < 0.05) continue;
+        const r = document.createRange(); r.selectNodeContents(n); const rects = [...r.getClientRects()];
+        for (const b of rects.slice(0, 2)) { const x = Math.max(0, b.left), y = Math.max(0, b.top), x2 = Math.min(innerWidth, b.right), y2 = Math.min(innerHeight, b.bottom); if (x2 - x < 4 || y2 - y < 6) continue;
+          // skip text covered by another layer (e.g. content under the bottom bar)
+          if (!el.closest("#tabbar") && underBar(x, y, x2, y2)) continue;
+          const mine = (px, py) => { const t = document.elementFromPoint(px, py); return t && (t === el || el.contains(t) || t.contains(el) || t.closest('.tl,.card,.sheet,button') === el.closest('.tl,.card,.sheet,button')); };
+          if (![[(x + x2) / 2, (y + y2) / 2], [x + 1, y + 1], [x2 - 1, y + 1], [x + 1, y2 - 1], [x2 - 1, y2 - 1]].every(q => mine(...q))) continue; // partly under the bar/header
+          out.push({ x, y, w: x2 - x, h: y2 - y, c: [c[0], c[1], c[2], c[3] * op], large: parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && +cs.fontWeight >= 700), t: txt.slice(0, 22) }); } }
+      return out;
+    });
+    await p.evaluate(() => { const st = document.createElement('style'); st.id = '__hidetext'; st.textContent = '*,*::before,*::after{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;transition:none!important;caret-color:transparent!important}.score{background:none!important}'; document.head.appendChild(st); });
+    await p.waitForTimeout(120); const b64 = (await p.screenshot(process.env.PXDBG ? { path: '/tmp/px-' + label.replace(/\W+/g, '_') + '.png' } : {})).toString('base64');
+    await p.evaluate(() => document.getElementById('__hidetext').remove());
+    const fails = await p.evaluate(async ({ b64, items }) => {
+      const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height; const g = cv.getContext('2d'); g.drawImage(img, 0, 0); const k = img.width / innerWidth;
+      const lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; const L = (r, gg, b) => .2126 * lin(r) + .7152 * lin(gg) + .0722 * lin(b);
+      const out = [];
+      for (const it of items) { const d = g.getImageData(Math.round(it.x * k), Math.round(it.y * k), Math.max(1, Math.round(it.w * k)), Math.max(1, Math.round(it.h * k))).data; const ls = [], cols = [];
+        for (let i = 0; i < d.length; i += 4 * 3) { ls.push(L(d[i], d[i + 1], d[i + 2])); cols.push([d[i], d[i + 1], d[i + 2]]); }
+        const idx = ls.map((v, i) => i).sort((a, b) => ls[a] - ls[b]); const lo = cols[idx[Math.floor(idx.length * .02)]], hi = cols[idx[Math.floor(idx.length * .98)]];
+        const worst = [lo, hi].map(bg => { const f = [0, 1, 2].map(i => it.c[i] * it.c[3] + bg[i] * (1 - it.c[3])); const a = L(...f), b = L(...bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); });
+        const cr = Math.min(...worst); if (cr < (it.large ? 3 : 4.5)) out.push(it.t + ' ' + cr.toFixed(2) + (window.__pxdbg ? ` @${it.x|0},${it.y|0} ${it.w|0}x${it.h|0} fg${it.c.map(v => +(+v).toFixed(2))} lo${lo} hi${hi}` : '')); }
+      return [...new Set(out)];
+    }, { b64, items });
+    console.log(`[pixels ${label}] text runs: ${items.length}; contrast fails: ${fails.length}${fails.length ? ' → ' + fails.slice(0, 10).join(' | ') : ''}`);
+    return fails.length;
+  };
+  const taps = async label => { const r = await audit(label); console.log(`[${label}] tap<44: ${r.small.length}${r.small.length ? ' → ' + r.small.slice(0, 8).join(' | ') : ''} (contrast: see pixel audit)`); return r.small.length; };
   const report = r => { console.log(`[${r.label}] tap<44: ${r.small.length}${r.small.length ? ' → ' + r.small.slice(0, 8).join(' | ') : ''}; contrast fails: ${r.fails.length}${r.fails.length ? ' → ' + r.fails.slice(0, 8).join(' | ') : ''}`); return r.small.length + r.fails.length; };
   let issues = 0;
   // default (tiles, midnight, vivid)
@@ -67,12 +111,41 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
   await shot('tiles-default-full', true);
   await p.evaluate(() => window.scrollTo(0, 640)); await shot('tiles-default-scrolled'); await p.evaluate(() => window.scrollTo(0, 0));
   if (!QUICK) {
+    if (!KONLY) {
     const themes = ['midnight', 'graphite', 'ember', 'oled', 'daylight', 'paper'];
     for (const th of themes) { await setLook(p, { theme: th, layout: 'tiles' }); await p.reload(); await shot('theme-' + th + '-tiles'); issues += report(await audit('tiles ' + th)); }
     for (const lay of ['rings', 'cards', 'compact']) for (const th of ['midnight', 'daylight']) {
       await setLook(p, { theme: th, layout: lay }); await p.reload(); await shot('layout-' + lay + '-' + th); issues += report(await audit(lay + ' ' + th)); }
     for (const th of ['graphite', 'ember', 'oled', 'paper']) for (const lay of ['rings', 'cards', 'compact']) { await setLook(p, { theme: th, layout: lay }); await p.reload(); await p.waitForTimeout(900); issues += report(await audit(lay + ' ' + th)); }
     for (const pal of ['neon', 'pastel', 'jewel', 'mono']) { await setLook(p, { theme: 'midnight', layout: 'tiles', palette: pal }); await p.reload(); await shot('palette-' + pal); issues += report(await audit('palette ' + pal)); }
+    }
+    // ---- Kitchen family (wood + frosted glass): pixel-level contrast incl. text over wood grain, glass and blur ----
+    for (const m of ['light', 'dark']) {
+      await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: 'tiles' }); await p.reload(); await shot('kitchen-' + m + '-tiles');
+      issues += await taps('kitchen ' + m + ' tiles');
+      for (const y of [0, 520, 1100, 99999]) { await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(500); issues += await pixelAudit('kitchen ' + m + ' tiles @' + y); }
+      await p.evaluate(() => window.scrollTo(0, 0));
+      for (const lay of ['rings', 'cards', 'compact']) { await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: lay }); await p.reload(); await p.waitForTimeout(1300); if (lay === 'cards' && m === 'dark') { await p.evaluate(() => window.scrollTo(0, 0)); await shot('kitchen-dark-cards'); }
+        issues += await taps(`kitchen ${m} ${lay}`); for (const y of [0, 700]) { await p.evaluate(y => window.scrollTo(0, y), y); await p.waitForTimeout(400); issues += await pixelAudit(`kitchen ${m} ${lay} @${y}`); } }
+      await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1200);
+      await p.click('#tabbar [data-tab=coach]'); await p.waitForTimeout(1200); await shot('kitchen-' + m + '-coach'); issues += await pixelAudit('kitchen ' + m + ' coach'); issues += await taps('kitchen ' + m + ' coach');
+      await p.evaluate(() => window.scrollTo(0, 900)); await p.waitForTimeout(400); issues += await pixelAudit('kitchen ' + m + ' coach @900');
+      for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`#tabbar [data-tab=${tab}]`); await p.waitForTimeout(900); issues += await pixelAudit(`kitchen ${m} ${tab}`); }
+      await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
+      await p.click('#fab'); await p.waitForTimeout(700); issues += await pixelAudit(`kitchen ${m} + sheet (glass over tiles)`); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+    }
+    await setLook(p, { theme: 'kitchen', kitchenMode: 'light', layout: 'tiles', palette: 'harmonised' }); await p.reload(); await shot('kitchen-light-harmonised'); issues += await pixelAudit('kitchen light harmonised');
+    await setLook(p, { theme: 'kitchen', kitchenMode: 'dark', layout: 'tiles', palette: 'harmonised' }); await p.reload(); await p.waitForTimeout(1300); issues += await pixelAudit('kitchen dark harmonised');
+    await setLook(p, { theme: 'kitchen', kitchenMode: 'auto', layout: 'tiles' }); await p.reload(); await p.waitForTimeout(900);
+    await p.click('[data-act=appearance]'); await p.waitForTimeout(900); await shot('kitchen-appearance'); issues += await pixelAudit('kitchen appearance sheet'); issues += await taps('kitchen appearance sheet');
+    await p.emulateMedia({ colorScheme: 'light' }); await p.waitForTimeout(400); const autoL = await p.evaluate(() => document.documentElement.dataset.theme);
+    await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(400); const autoD = await p.evaluate(() => document.documentElement.dataset.theme);
+    console.log('kitchen Auto follows prefers-color-scheme:', autoL, '/', autoD);
+    await p.click('.sheet.on [data-look-kit=light]'); await p.waitForTimeout(300); console.log('kitchen switch Light ->', await p.evaluate(() => document.documentElement.dataset.theme));
+    await p.click('.sheet.on [data-look-kit=dark]'); await p.waitForTimeout(300); console.log('kitchen switch Dark ->', await p.evaluate(() => document.documentElement.dataset.theme));
+    await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+    await setLook(p, { theme: 'midnight', layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1300); issues += await pixelAudit('midnight tiles (method check)');
+    if (KONLY) { console.log('ISSUES', issues, 'CONSOLE ERRORS', errs.length, errs.slice(0, 10)); await b.close(); return; }
     await setLook(p, { theme: 'daylight', accent: '#ffe600', layout: 'tiles', palette: 'mono' }); await p.reload(); await shot('accent-custom-yellow-daylight'); issues += report(await audit('custom accent yellow daylight'));
     await setLook(p, { theme: 'midnight', layout: 'tiles', density: 'compact' }); await p.reload(); await shot('density-compact-tiles'); issues += report(await audit('compact density'));
     await setLook(p, { theme: 'midnight', layout: 'cards', density: 'compact' }); await p.reload(); await p.waitForTimeout(900); issues += report(await audit('compact density cards'));

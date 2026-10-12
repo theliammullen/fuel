@@ -107,7 +107,7 @@ button:focus:not(:focus-visible){outline:none}
 
 /* ---------- Today: Tiles (default) ---------- */
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.tl{--on:var(--text);position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
+.tl{--on:var(--text);--sh:color-mix(in srgb,var(--on) 14%,transparent);position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
   min-height:96px;padding:14px;border-radius:20px;background:var(--surface);color:var(--on);overflow:hidden;
   transition:transform .18s cubic-bezier(.3,1.4,.5,1),filter .18s,box-shadow .18s;-webkit-user-select:none;user-select:none}
 .tl.w2{grid-column:span 2}
@@ -124,23 +124,23 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .tl .ttl{font-size:20px;font-weight:850;letter-spacing:-.01em;margin-top:8px}
 .tl .tbar{width:100%;height:8px;border-radius:9px;background:color-mix(in srgb,var(--on) 22%,transparent);overflow:hidden;margin-top:10px}
 .tl .tbar i{display:block;height:100%;width:0;border-radius:9px;background:var(--on);transition:width 1s cubic-bezier(.2,.8,.2,1)}
-.tl .done{position:absolute;top:12px;right:12px;font-size:11.5px;font-weight:800;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--on) 18%,transparent)}
+.tl .done{position:absolute;top:12px;right:12px;font-size:11.5px;font-weight:800;padding:4px 8px;border-radius:99px;background:var(--sh)}
 .tl .tbtns{display:flex;gap:8px;margin-top:10px;width:100%}
-.tl .tb{flex:1;min-height:44px;border-radius:14px;font-weight:800;font-size:14px;color:var(--on);background:color-mix(in srgb,var(--on) 18%,transparent);transition:transform .12s}
-.tl .tb:active{transform:scale(.93);background:color-mix(in srgb,var(--on) 30%,transparent)}
+.tl .tb{flex:1;min-height:44px;border-radius:14px;font-weight:800;font-size:14px;color:var(--on);background:var(--sh);transition:transform .12s}
+.tl .tb:active{transform:scale(.93);filter:brightness(.92)}
 .tl.neutral{background:var(--surface);--on:var(--text);min-height:64px;flex-direction:row;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:14.5px}
 .tl.neutral svg{width:20px;height:20px}
 .tl.hit::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,#fff 35%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:shine 1.4s .4s ease-out 1 both;pointer-events:none}
 @keyframes shine{to{transform:translateX(100%)}}
 .tgrid3{grid-template-columns:repeat(3,1fr)}
 /* tile colours */
-.tl.c-say{background:var(--t-say);--on:var(--t-say-on)}.tl.c-label{background:var(--t-label);--on:var(--t-label-on)}
-.tl.c-kcal{background:var(--t-kcal);--on:var(--t-kcal-on)}.tl.c-protein{background:var(--t-protein);--on:var(--t-protein-on)}
-.tl.c-water{background:var(--t-water);--on:var(--t-water-on)}.tl.c-carbs{background:var(--t-carbs);--on:var(--t-carbs-on)}
-.tl.c-fat{background:var(--t-fat);--on:var(--t-fat-on)}.tl.c-items{background:var(--t-items);--on:var(--t-items-on)}
-.tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on)}
-.tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on)}
-.tl.c-coach{background:var(--t-coach);--on:var(--t-coach-on)}
+.tl.c-say{background:var(--t-say);--on:var(--t-say-on);--sh:var(--t-say-sh)}.tl.c-label{background:var(--t-label);--on:var(--t-label-on);--sh:var(--t-label-sh)}
+.tl.c-kcal{background:var(--t-kcal);--on:var(--t-kcal-on);--sh:var(--t-kcal-sh)}.tl.c-protein{background:var(--t-protein);--on:var(--t-protein-on);--sh:var(--t-protein-sh)}
+.tl.c-water{background:var(--t-water);--on:var(--t-water-on);--sh:var(--t-water-sh)}.tl.c-carbs{background:var(--t-carbs);--on:var(--t-carbs-on);--sh:var(--t-carbs-sh)}
+.tl.c-fat{background:var(--t-fat);--on:var(--t-fat-on);--sh:var(--t-fat-sh)}.tl.c-items{background:var(--t-items);--on:var(--t-items-on);--sh:var(--t-items-sh)}
+.tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on);--sh:var(--t-micro-sh)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on);--sh:var(--t-score-sh)}
+.tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on);--sh:var(--t-focus-sh)}
+.tl.c-coach{background:var(--t-coach);--on:var(--t-coach-on);--sh:var(--t-coach-sh)}
 /* Tiles layout: the Coach tile is the entry point, so the full Coach card (js/coach.js) is not repeated below the grid */
 [data-layout=tiles] #app .co-card{display:none}
 .tl .pick{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px}
@@ -149,11 +149,11 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .tl .pick .tb{flex:none;padding:0 16px}
 /* My items inside a tile */
 .tl .qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:10px}
-.tl .qi{background:color-mix(in srgb,var(--on) 15%,transparent);color:var(--on);border-radius:14px;min-height:56px}
+.tl .qi,[data-family] .tl .qi{background:var(--sh);color:var(--on);border-radius:14px;min-height:56px}
 .tl .qi .qs,.tl .qi .qk{color:var(--on);opacity:.88}.tl .qi .qk b{color:var(--on)}
 .tl .qi .qe{color:var(--on)}
-.tl .qi:active,.tl .qi.press{background:color-mix(in srgb,var(--on) 28%,transparent)}
-.tl .more{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:750;font-size:13px;color:var(--on);background:color-mix(in srgb,var(--on) 12%,transparent)}
+.tl .qi:active,.tl .qi.press{background:var(--sh);filter:brightness(.92)}
+.tl .more{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:750;font-size:13px;color:var(--on);background:var(--sh)}
 .tl .emptyt{font-size:13.5px;font-weight:600;opacity:.9;margin-top:8px;line-height:1.4}
 
 /* XP float */
@@ -207,3 +207,65 @@ input[type=range]{min-height:44px}
 summary{min-height:44px;padding-top:12px!important;padding-bottom:12px!important;cursor:pointer}
 .chip.on{background:var(--btn1)}
 .bdg.off{opacity:1}.bdg.off .ic{opacity:.5;filter:grayscale(1)}.bdg.off b{color:var(--mut)}
+
+/* =====================================================================
+   Kitchen family — stone counter, frosted glass, wood trims, brass details.
+   Textures: img/wood-light.jpg (white oak/maple), img/wood-dark.jpg (walnut/smoked oak) from data-build/make_wood.py;
+   stone speckle is an inline SVG feTurbulence. Colour pops (tiles, rings, meters, buttons) stay vivid.
+   ===================================================================== */
+[data-theme=kitchen-light]{--wood:url(../img/wood-light.jpg);--wood-ink:#24180d;--wood-mut:#3e2e1e;
+  --wood-sheen:linear-gradient(180deg,rgba(255,252,244,.34),rgba(255,248,236,.12));
+  --glass:rgba(255,251,244,.6);--glass-strong:rgba(252,248,240,.9);--glass-hi:rgba(255,255,255,.85);--glass-edge:rgba(110,80,40,.13);
+  --brass:#a47a35;--brass-hi:#d9b878;--counter-shadow:rgba(70,45,15,.14);
+  --stone-speck:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .18 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+[data-theme=kitchen-dark]{--wood:url(../img/wood-dark.jpg);--wood-ink:#f8eddd;--wood-mut:#e2cfb4;
+  --wood-sheen:linear-gradient(180deg,rgba(255,226,180,.07),rgba(0,0,0,.16));
+  --glass:rgba(40,34,29,.58);--glass-strong:rgba(33,28,24,.92);--glass-hi:rgba(255,236,208,.16);--glass-edge:rgba(255,220,170,.07);
+  --brass:#c9a24a;--brass-hi:#ecd08a;--counter-shadow:rgba(0,0,0,.45);
+  --stone-speck:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .92 0 0 0 0 .8 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* stone counter */
+[data-theme=kitchen-light] body{background:var(--stone-speck),radial-gradient(900px 520px at 20% -10%,rgba(255,255,255,.7),transparent 60%),radial-gradient(800px 600px at 100% 110%,rgba(196,170,130,.25),transparent 60%),var(--bg)}
+[data-theme=kitchen-dark] body{background:var(--stone-speck),radial-gradient(900px 520px at 20% -10%,rgba(255,200,120,.08),transparent 60%),var(--bg)}
+/* wood header panel (every view) */
+[data-family=kitchen] .top{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;border-radius:22px;padding:12px 10px 12px 18px;margin-bottom:12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.12),0 8px 20px var(--counter-shadow)}
+[data-family=kitchen] .top h1{color:var(--wood-ink)}
+[data-family=kitchen] .top .sub{color:var(--wood-mut)}
+[data-family=kitchen] .top .iconbtn{background:rgba(255,255,255,.18);color:var(--wood-ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+[data-theme=kitchen-dark] .top .iconbtn{background:rgba(0,0,0,.22)}
+/* frosted glass panels with a highlight and a slim brass lip */
+[data-family=kitchen] .card,[data-family=kitchen] .datebar .d,[data-family=kitchen] .iconbtn{background:var(--glass);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 0 0 1px var(--glass-edge),0 8px 22px var(--counter-shadow)}
+[data-family=kitchen] .card{position:relative}
+[data-family=kitchen] .card::after{content:"";position:absolute;left:22px;right:22px;top:0;height:2px;border-radius:0 0 2px 2px;background:linear-gradient(90deg,transparent,var(--brass-hi),var(--brass),var(--brass-hi),transparent);opacity:.75;pointer-events:none}
+[data-family=kitchen] .sheet{background:var(--glass-strong);-webkit-backdrop-filter:blur(26px) saturate(150%);backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 var(--glass-hi),0 -16px 44px var(--counter-shadow)}
+[data-family=kitchen] .sheet .grab{background:var(--wood) 0 0/256px 128px;height:6px;width:46px}
+[data-family=kitchen] .toast{background:var(--glass-strong);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 36px var(--counter-shadow)}
+[data-family=kitchen] .stat3>div,[data-family=kitchen] .macro4>div,[data-family=kitchen] .tiers>div,[data-family=kitchen] .note,[data-family=kitchen] .bdg,[data-family=kitchen] .mcard,[data-family=kitchen] .qi,[data-family=kitchen] .tile{background:color-mix(in srgb,var(--surface2) 90%,transparent)}
+/* wood bottom bar with a brass top rule */
+[data-family=kitchen] .tabbar{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;box-shadow:inset 0 1px 0 var(--brass-hi),inset 0 2px 0 rgba(255,255,255,.12),0 8px 18px var(--counter-shadow)}
+[data-family=kitchen] .tab{color:var(--wood-mut)}
+[data-family=kitchen] .tab.on{color:var(--wood-ink)}
+[data-family=kitchen] .tab.on svg{color:var(--wood-ink);filter:drop-shadow(0 0 6px rgba(var(--acc-rgb),.55))}
+[data-family=kitchen] .tab{position:relative}
+[data-family=kitchen] .tab.on::after{content:"";position:absolute;bottom:0;left:50%;width:18px;height:3px;margin-left:-9px;border-radius:3px;background:var(--acc)}
+[data-family=kitchen] .fab{box-shadow:0 0 0 3px var(--brass-hi),0 0 0 5px rgba(0,0,0,.18),0 12px 26px rgba(var(--acc-rgb),.45)}
+/* tiles: vivid colour blocks sitting on a wood shelf lip */
+[data-family=kitchen] .tl:not(.neutral)::before{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--wood) 0 0/256px 128px;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);pointer-events:none}
+[data-family=kitchen] .tl:not(.neutral){padding-bottom:18px;box-shadow:0 8px 18px var(--counter-shadow),inset 0 1px 0 rgba(255,255,255,.22)}
+[data-family=kitchen] .tl.neutral{background:var(--wood-sheen),var(--wood) 0 0/512px 256px;color:var(--wood-ink);--on:var(--wood-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 16px var(--counter-shadow)}
+/* controls */
+[data-family=kitchen] .btn:not(.pri):not(.danger),[data-family=kitchen] .chip:not(.on),[data-family=kitchen] .seg{background:color-mix(in srgb,var(--surface2) 78%,transparent)}
+[data-family=kitchen] .addmeal{border-color:color-mix(in srgb,var(--brass) 55%,transparent)}
+[data-family=kitchen] .lvl .badge{box-shadow:0 0 0 2px var(--brass-hi)}
+/* solid fallback where frosted glass isn't supported */
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  [data-family=kitchen] .card,[data-family=kitchen] .datebar .d,[data-family=kitchen] .iconbtn{background:var(--surface)}
+  [data-family=kitchen] .sheet,[data-family=kitchen] .toast{background:var(--surface)}
+}
+/* Appearance: Kitchen swatch + mode switch */
+.sw.kit{background:linear-gradient(135deg,transparent 49.5%,rgba(0,0,0,0) 50%),url(../img/wood-light.jpg) 0 0/256px 128px;color:#24180d}
+.sw.kit::after{content:"";position:absolute;inset:0;border-radius:16px;background:url(../img/wood-dark.jpg) 0 0/256px 128px;clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none}
+.sw.kit b,.sw.kit .dots{position:relative;z-index:1}
+.sw.kit b{background:rgba(255,251,244,.85);padding:2px 8px;border-radius:8px;align-self:flex-start}
