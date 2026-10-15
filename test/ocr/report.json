@@ -1,0 +1,513 @@
+{
+ "by": {
+  "clean": {
+   "n": 292,
+   "ok": 292,
+   "wrong": 0,
+   "miss": 0,
+   "imgs": 20,
+   "perfect": 20,
+   "ms": 13173
+  },
+  "rot5": {
+   "n": 144,
+   "ok": 144,
+   "wrong": 0,
+   "miss": 0,
+   "imgs": 10,
+   "perfect": 10,
+   "ms": 7720
+  },
+  "blur": {
+   "n": 102,
+   "ok": 88,
+   "wrong": 1,
+   "miss": 13,
+   "imgs": 7,
+   "perfect": 3,
+   "ms": 7841
+  },
+  "photo": {
+   "n": 292,
+   "ok": 270,
+   "wrong": 6,
+   "miss": 16,
+   "imgs": 20,
+   "perfect": 13,
+   "ms": 28917
+  },
+  "rot90": {
+   "n": 72,
+   "ok": 72,
+   "wrong": 0,
+   "miss": 0,
+   "imgs": 5,
+   "perfect": 5,
+   "ms": 5982
+  },
+  "rot180": {
+   "n": 76,
+   "ok": 76,
+   "wrong": 0,
+   "miss": 0,
+   "imgs": 5,
+   "perfect": 5,
+   "ms": 5879
+  }
+ },
+ "rows": [
+  {
+   "id": "proteinbar-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 1070
+  },
+  {
+   "id": "proteinbar-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 677
+  },
+  {
+   "id": "proteinbar-caold",
+   "acc": 1,
+   "bad": [],
+   "ms": 679
+  },
+  {
+   "id": "yogurt-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 675
+  },
+  {
+   "id": "yogurt-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 701
+  },
+  {
+   "id": "granola-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 692
+  },
+  {
+   "id": "granola-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 619
+  },
+  {
+   "id": "granola-caold",
+   "acc": 1,
+   "bad": [],
+   "ms": 584
+  },
+  {
+   "id": "oatmilk-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 651
+  },
+  {
+   "id": "oatmilk-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 590
+  },
+  {
+   "id": "peanutbutter-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 622
+  },
+  {
+   "id": "peanutbutter-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 613
+  },
+  {
+   "id": "peanutbutter-caold",
+   "acc": 1,
+   "bad": [],
+   "ms": 627
+  },
+  {
+   "id": "crackers-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 645
+  },
+  {
+   "id": "crackers-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 576
+  },
+  {
+   "id": "tuna-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 618
+  },
+  {
+   "id": "tuna-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 608
+  },
+  {
+   "id": "tuna-caold",
+   "acc": 1,
+   "bad": [],
+   "ms": 590
+  },
+  {
+   "id": "cereal-ca",
+   "acc": 1,
+   "bad": [],
+   "ms": 659
+  },
+  {
+   "id": "cereal-us",
+   "acc": 1,
+   "bad": [],
+   "ms": 677
+  },
+  {
+   "id": "cereal-ca~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 838
+  },
+  {
+   "id": "cereal-ca~blur",
+   "acc": 1,
+   "bad": [],
+   "ms": 1253
+  },
+  {
+   "id": "cereal-ca~photo",
+   "acc": 0.42857142857142855,
+   "bad": [
+    "kcal missing",
+    "fat missing",
+    "carbs missing",
+    "sodium missing",
+    "cholesterol 4≠0(assumed)",
+    "transFat missing",
+    "calcium missing",
+    "iron missing"
+   ],
+   "ms": 6755
+  },
+  {
+   "id": "cereal-us~rot90",
+   "acc": 1,
+   "bad": [],
+   "ms": 1175
+  },
+  {
+   "id": "cereal-us~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 857
+  },
+  {
+   "id": "crackers-ca~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 766
+  },
+  {
+   "id": "crackers-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 800
+  },
+  {
+   "id": "crackers-us~rot180",
+   "acc": 1,
+   "bad": [],
+   "ms": 1194
+  },
+  {
+   "id": "crackers-us~blur",
+   "acc": 0.5625,
+   "bad": [
+    "protein missing",
+    "carbs missing",
+    "sodium missing",
+    "cholesterol missing",
+    "satFat 0≠0.4(assumed)",
+    "iron missing",
+    "vitD missing"
+   ],
+   "ms": 946
+  },
+  {
+   "id": "crackers-us~photo",
+   "acc": 0.9375,
+   "bad": [
+    "sodium 26≠260(assumed)"
+   ],
+   "ms": 781
+  },
+  {
+   "id": "granola-ca~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 735
+  },
+  {
+   "id": "granola-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 747
+  },
+  {
+   "id": "granola-caold~rot90",
+   "acc": 1,
+   "bad": [],
+   "ms": 1169
+  },
+  {
+   "id": "granola-caold~photo",
+   "acc": 0.46153846153846156,
+   "bad": [
+    "fat 10.5≠9(assumed)",
+    "protein missing",
+    "fibre 5.6≠5(assumed)",
+    "sodium missing",
+    "satFat 1.6≠1.5(dv)",
+    "transFat missing",
+    "iron 3.24≠2.88(assumed)"
+   ],
+   "ms": 1193
+  },
+  {
+   "id": "granola-us~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 720
+  },
+  {
+   "id": "granola-us~blur",
+   "acc": 0.6875,
+   "bad": [
+    "protein missing",
+    "carbs missing",
+    "sodium missing",
+    "cholesterol missing",
+    "vitD missing"
+   ],
+   "ms": 1039
+  },
+  {
+   "id": "granola-us~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 780
+  },
+  {
+   "id": "oatmilk-ca~rot180",
+   "acc": 1,
+   "bad": [],
+   "ms": 1245
+  },
+  {
+   "id": "oatmilk-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 888
+  },
+  {
+   "id": "oatmilk-us~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 798
+  },
+  {
+   "id": "oatmilk-us~photo",
+   "acc": 0.9375,
+   "bad": [
+    "kcal missing"
+   ],
+   "ms": 5357
+  },
+  {
+   "id": "peanutbutter-ca~rot90",
+   "acc": 1,
+   "bad": [],
+   "ms": 1176
+  },
+  {
+   "id": "peanutbutter-ca~blur",
+   "acc": 0.9285714285714286,
+   "bad": [
+    "potassium missing"
+   ],
+   "ms": 1100
+  },
+  {
+   "id": "peanutbutter-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 809
+  },
+  {
+   "id": "peanutbutter-caold~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 726
+  },
+  {
+   "id": "peanutbutter-caold~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 828
+  },
+  {
+   "id": "peanutbutter-us~rot180",
+   "acc": 1,
+   "bad": [],
+   "ms": 1148
+  },
+  {
+   "id": "peanutbutter-us~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 738
+  },
+  {
+   "id": "proteinbar-ca~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 780
+  },
+  {
+   "id": "proteinbar-ca~blur",
+   "acc": 0.9285714285714286,
+   "bad": [
+    "potassium missing"
+   ],
+   "ms": 1251
+  },
+  {
+   "id": "proteinbar-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 859
+  },
+  {
+   "id": "proteinbar-caold~rot90",
+   "acc": 1,
+   "bad": [],
+   "ms": 1190
+  },
+  {
+   "id": "proteinbar-caold~photo",
+   "acc": 0.9230769230769231,
+   "bad": [
+    "calcium missing"
+   ],
+   "ms": 606
+  },
+  {
+   "id": "proteinbar-us~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 782
+  },
+  {
+   "id": "proteinbar-us~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 824
+  },
+  {
+   "id": "tuna-ca~rot180",
+   "acc": 1,
+   "bad": [],
+   "ms": 1176
+  },
+  {
+   "id": "tuna-ca~blur",
+   "acc": 1,
+   "bad": [],
+   "ms": 1114
+  },
+  {
+   "id": "tuna-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 839
+  },
+  {
+   "id": "tuna-caold~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 817
+  },
+  {
+   "id": "tuna-caold~photo",
+   "acc": 0.9230769230769231,
+   "bad": [
+    "kcal missing"
+   ],
+   "ms": 721
+  },
+  {
+   "id": "tuna-us~rot90",
+   "acc": 1,
+   "bad": [],
+   "ms": 1272
+  },
+  {
+   "id": "tuna-us~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 859
+  },
+  {
+   "id": "yogurt-ca~rot5",
+   "acc": 1,
+   "bad": [],
+   "ms": 758
+  },
+  {
+   "id": "yogurt-ca~blur",
+   "acc": 1,
+   "bad": [],
+   "ms": 1138
+  },
+  {
+   "id": "yogurt-ca~photo",
+   "acc": 1,
+   "bad": [],
+   "ms": 857
+  },
+  {
+   "id": "yogurt-us~rot180",
+   "acc": 1,
+   "bad": [],
+   "ms": 1116
+  },
+  {
+   "id": "yogurt-us~photo",
+   "acc": 0.8125,
+   "bad": [
+    "protein missing",
+    "sugars missing",
+    "sodium missing"
+   ],
+   "ms": 2819
+  }
+ ],
+ "ok": 942,
+ "tot": 978,
+ "wrong": 7,
+ "miss": 29
+}
