@@ -1,6 +1,6 @@
 {
  "taps": {
-  "Say it (Today tile → type → Find → Approve)": 3,
+  "Say it (＋ hub → type → Find → Approve)": 4,
   "Say it via + (＋ → Say it → type → Find → Approve)": 4,
   "Read the label → Read → Save item": 3,
   "My items one-tap": 1,
@@ -17,11 +17,10 @@
  "checks": {
   "fabCentre": 0,
   "tabWidths": [
-   72,
-   72,
-   48,
-   48,
-   48
+   74,
+   74,
+   74,
+   74
   ],
   "sayLogged": 3,
   "labelForm": {
@@ -64,30 +63,16 @@
     500
    ]
   ],
-  "barcode": "Log food | No product found for 0055577101015. Create it",
-  "mealPortions": [
-   "Sardines in oil, canned — 1½ cans (138 g)",
-   "Lentils, cooked — 1¼ cups cooked (224 g)",
-   "Spinach, raw — 3 cups (90 g)",
-   "Tomato — 1½ medium (185 g)",
-   "Tofu, firm — 282 g",
-   "Edamame, shelled — ¾ cup (116 g)",
-   "Broccoli, cooked — 1½ cups (248 g)",
-   "Brown rice, cooked — ¾ cup cooked (157 g)",
-   "Atlantic salmon, baked — 226 g fillet",
-   "Potato (PEI), baked with skin — 1½ medium (260 g)",
-   "Brussels sprouts, cooked — 1½ cups (248 g)",
-   "Turkey breast, roasted — 226 g cooked"
-  ],
+  "barcode": "Log food | No match for 0055577101015.📷 Scan the label instead✍️ Type it in",
   "weights": [
    {
-    "d": "2026-10-11",
+    "d": "2026-10-15",
     "lb": 182.4
    }
   ],
   "goals": 6,
   "tile_vitD": true,
-  "info_vitD": "Vitamin D\n4.1 µg · 163 IU\n2%\nBASELINE\n15\nRDA (600 IU)\n600 IU\nGOAL\n250\nyour goal\n10,000 IU\nUPPER LIMIT\n100\nNASEM UL · info only\n4,000 IU\nℹ️ Your goal is above the NASEM upper limit (4,000 IU); consider monitoring blood 25(OH)D with a doctor.\nBone health, muscle function and immunity. In PEI (~46°N) the sun is too weak to make vitamin D from about October to March.\nTargets: Your goal: 250 µg (10,000 IU) a day — your own setting (change it under Customise below). Baseline = RDA 15 µg (600 IU), which NASEM set assuming minimal sun, and it is what the daily score and \"micros at baseline\" use. The NASEM Tolerable Upper Intake Level of 100 µg (4,000 IU) is shown for information only: going above it does not trigger a warning or lower your score. For context, the Endocrine Society 2024 guideline does not recommend routine doses above the DRI for healthy adults under 75. 1 µg = 40 IU.\nTOP FOOD SO",
+  "info_vitD": "Vitamin D\n2 µg · 81 IU\n1%\nBASELINE\n15\nRDA (600 IU)\n600 IU\nGOAL\n250\nyour goal\n10,000 IU\nUPPER LIMIT\n100\nNASEM UL · info only\n4,000 IU\nℹ️ Your goal is above the NASEM upper limit (4,000 IU); consider monitoring blood 25(OH)D with a doctor.\nBone health, muscle function and immunity. In PEI (~46°N) the sun is too weak to make vitamin D from about October to March.\nTargets: Your goal: 250 µg (10,000 IU) a day — your own setting (change it under Customise below). Baseline = RDA 15 µg (600 IU), which NASEM set assuming minimal sun, and it is what the daily score and \"micros at baseline\" use. The NASEM Tolerable Upper Intake Level of 100 µg (4,000 IU) is shown for information only: going above it does not trigger a warning or lower your score. For context, the Endocrine Society 2024 guideline does not recommend routine doses above the DRI for healthy adults under 75. 1 µg = 40 IU.\nTOP FOOD SOURC",
   "tile_creatine": true,
   "info_creatine": "Creatine\n0 g\n0%\nData available for 0% of what you logged today — true intake is likely higher.\nBASELINE\n3\nISSN maintenance\nGOAL\n10\nyour goal\nUPPER LIMIT\n—\nnone set\nThe most-studied sports supplement. Topping up muscle creatine stores improves strength and power in repeated hard efforts and increases lean mass gains with resistance training; evidence for cognitive benefits (especially when sleep-deprived or in older adults) is promising but less certain.\nTargets: Your goal: 10 g a day (change it under Customise below). ISSN position stand (Kreider et al. 2017): 3–5 g/day maintenance, optionally after a loading phase of ~20 g/day (4 × 5 g) for 5–7 days. Doses of 10 g/day and higher have been used safely in studies (the ISSN reports up to 30 g/day for 5 years in healthy people). Take it any time of day, with plenty of fluid.\nTOP FOOD SOURCES\nCreatine monohydrate supplement (1 scoop = 5 g). ",
   "looks": {
@@ -120,7 +105,7 @@
   "roundTrip": {
    "dataEqual": true,
    "lookRestored": true,
-   "bytes": 21320,
+   "bytes": 17944,
    "keys": [
     "app",
     "exported",
@@ -133,14 +118,14 @@
    "afterPagehide": true
   },
   "css": {
-   "colorMixRules": 6,
-   "colorMixWithoutFallback": 4,
+   "colorMixRules": 5,
+   "colorMixWithoutFallback": 0,
    "safeArea": true,
-   "viewportFit": "width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+   "viewportFit": "width=device-width,initial-scale=1,viewport-fit=cover"
   },
   "offline": {
    "title": "Fuel — Nutrition",
-   "tabs": 5,
+   "tabs": 4,
    "app": true,
    "db": 18273,
    "sw": "fuel-v1.5.0"
