@@ -108,7 +108,7 @@ input,select,textarea{font-size:16px}
 .addmeal{width:100%;margin-top:6px;padding:10px;border-radius:13px;border:1px dashed rgba(255,255,255,.18);color:var(--mut);font-weight:600;font-size:13px}
 
 /* tab bar */
-.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + 10px);width:min(530px,calc(100% - 16px));display:grid;grid-template-columns:minmax(0,62fr) minmax(0,82fr) auto minmax(0,44fr) minmax(0,54fr) minmax(0,46fr);align-items:center;padding:8px;border-radius:26px;background:rgba(18,20,36,.72);border:1px solid var(--line);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);box-shadow:0 18px 40px rgba(0,0,0,.45);z-index:40}
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + 10px);width:min(530px,calc(100% - 16px));display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto minmax(0,1fr) minmax(0,1fr);align-items:center;padding:8px;border-radius:26px;background:rgba(18,20,36,.72);border:1px solid var(--line);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);box-shadow:0 18px 40px rgba(0,0,0,.45);z-index:40}
 .tab{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--dim);padding:6px 0;transition:color .2s}
 .tab svg{width:23px;height:23px}
 .tab.on{color:var(--text)}
@@ -249,7 +249,7 @@ a{color:var(--a2)}
 .unparsed b{display:block;color:#ff8a9b;margin-bottom:2px}
 .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 8px;vertical-align:-1px}.lg:first-child{margin-left:0}
 .lg.ok{background:#34d399}.lg.dv{background:#22d3ee}.lg.assumed{background:#ffb547}
-/* 5 tabs + centred ＋: 2 tabs left (3fr each) and 3 tabs right (2fr each) take equal halves, so the ＋ sits on the centre line */
+/* 4 equal tabs + centred ＋: two each side, so the ＋ sits on the centre line */
 .tabbar .fab{justify-self:center;margin-left:4px;margin-right:4px}
 .tab{white-space:nowrap}
 /* iOS < 16.2 has no color-mix(): plain fallbacks for the Tiles rules in themes.css (same selectors, declared earlier,

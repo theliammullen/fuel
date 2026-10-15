@@ -135,7 +135,7 @@ const SS = '/workspace/nutrition-app/screenshots/';
   await p.click('.sheet.on [data-close]'); await p.waitForTimeout(400);
   await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(300);
   await p.screenshot({ path: SS + '1-dashboard.png' });
-  console.log('AI leftovers in DOM', await p.evaluate(() => /photo|api key|openai|gemini/i.test(document.body.innerHTML)));
+  console.log('AI leftovers in DOM', await p.evaluate(() => /openai|gemini|anthropic|claude/i.test(document.body.innerHTML)));
   console.log('ERRS', errs);
   await b.close();
 })();

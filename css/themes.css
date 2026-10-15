@@ -140,22 +140,6 @@ button.tl:active,.tl.tap:active{transform:scale(.965);filter:brightness(1.08)}
 .tl.c-fat{background:var(--t-fat);--on:var(--t-fat-on);--sh:var(--t-fat-sh)}.tl.c-items{background:var(--t-items);--on:var(--t-items-on);--sh:var(--t-items-sh)}
 .tl.c-micro{background:var(--t-micro);--on:var(--t-micro-on);--sh:var(--t-micro-sh)}.tl.c-score{background:var(--t-score);--on:var(--t-score-on);--sh:var(--t-score-sh)}
 .tl.c-focus{background:var(--t-focus);--on:var(--t-focus-on);--sh:var(--t-focus-sh)}
-.tl.c-coach{background:var(--t-coach);--on:var(--t-coach-on);--sh:var(--t-coach-sh)}
-/* Coach tile: supplement picks (💊) + goal-above-UL note, so Tiles carries everything the hidden Coach card has */
-.tl .tsupps{width:100%;display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.tl .tsupp{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 10px;border-radius:14px;background:var(--sh);color:var(--on);text-align:left}
-.tl .tsupp:active{filter:brightness(.92)}
-.tl .tsupp .sb{flex:none;font-size:11px;font-weight:800;letter-spacing:.02em;padding:4px 7px;border-radius:99px;background:var(--on);color:var(--t-coach)}
-.tl .tsupp .sn{flex:1;min-width:0;font-weight:750;font-size:14px;line-height:1.25}
-.tl .tsupp .sn small{display:block;font-weight:600;font-size:12px}
-.tl .tsupp .sp{flex:none;font-size:18px;font-weight:800}
-.tl .tul{margin-top:10px;font-size:12px;font-weight:600;line-height:1.35;padding:8px 10px;border-radius:12px;background:var(--sh);color:var(--on)}
-/* Tiles layout: the Coach tile is the entry point, so the full Coach card (js/coach.js) is not repeated below the grid */
-[data-layout=tiles] #app .co-card{display:none}
-.tl .pick{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px}
-.tl .pick .pn{flex:1;min-width:0;font-weight:750;font-size:14.5px;line-height:1.25}
-.tl .pick .pn span{display:block;font-size:12.5px;font-weight:600;opacity:.88}
-.tl .pick .tb{flex:none;padding:0 16px}
 /* My items inside a tile */
 .tl .qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:10px}
 .tl .qi,[data-family] .tl .qi{background:var(--sh);color:var(--on);border-radius:14px;min-height:56px}
@@ -285,3 +269,19 @@ summary{min-height:44px;padding-top:12px!important;padding-bottom:12px!important
 .sw.kit::after{content:"";position:absolute;inset:0;border-radius:16px;background:url(../img/wood-dark.jpg) 0 0/256px 128px;clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none}
 .sw.kit b,.sw.kit .dots{position:relative;z-index:1}
 .sw.kit b{background:rgba(255,251,244,.85);padding:2px 8px;border-radius:8px;align-self:flex-start}
+/* v1.5 hero tiles: Scan barcode + Scan label (with a library corner button) and the small options row */
+.tl.scanhero{padding:0}
+.tl.scanhero .hit{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;width:100%;min-height:inherit;padding:14px;color:inherit;text-align:left;border-radius:inherit;background:none;border:0;font:inherit}
+.tl.scanhero .hit:active{transform:scale(.965)}
+.tl.scanhero .lib{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:14px;background:var(--sh);color:var(--on);font-size:20px;display:grid;place-items:center}
+.tl.minor{flex-direction:row;align-items:stretch;gap:6px;padding:6px;min-height:0;background:var(--surface)}
+.tl.minor button{flex:1;min-width:0;min-height:44px;border-radius:14px;font-weight:700;font-size:13.5px;background:rgba(var(--fg-rgb),.06);color:var(--text);white-space:nowrap}
+/* scan progress + review */
+.scanprog{display:flex;gap:14px;align-items:center}
+.scanthumb{width:64px;height:64px;object-fit:cover;border-radius:12px;flex:none;background:rgba(var(--fg-rgb),.06)}
+.scanthumb.big{width:88px;height:110px}
+.pbar{height:10px;border-radius:9px;background:rgba(var(--fg-rgb),.1);overflow:hidden;margin:10px 0 8px}
+.pbar i{display:block;height:100%;border-radius:9px;background:var(--acc);transition:width .3s}
+.srcb{font-size:12px;font-weight:800;padding:5px 9px;border-radius:99px;background:rgba(var(--fg-rgb),.08);white-space:nowrap}
+.srcb.usda{color:var(--s-good)}.srcb.off{color:var(--s-warn)}.srcb.cus{color:var(--s-violet)}
+.ocrtxt{white-space:pre-wrap;font-size:12px;line-height:1.35;max-height:220px;overflow:auto;background:rgba(var(--fg-rgb),.05);padding:8px;border-radius:10px;margin:6px 0 0;color:var(--text)}

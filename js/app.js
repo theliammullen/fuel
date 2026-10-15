@@ -557,10 +557,7 @@ function renderToday() {
   const warn = `${ev.over && ev.over.length ? `<div class="note" style="box-shadow:inset 0 0 0 1.5px var(--s-bad)">⚠️ Over limit: ${ev.over.map(k => BY[k].name).join(', ')}</div>` : ''}${ev.ulOver && ev.ulOver.length ? `<div class="note" style="box-shadow:inset 0 0 0 1.5px var(--s-bad)">⚠️ Above Upper Limit: ${ev.ulOver.map(k => BY[k].name).join(', ')}</div>` : ''}`;
   if (lay === 'tiles') return head + todayTiles(X) + weightCta + MEALS.map(([mk, ml, mi]) => mealCard(mk, ml, mi, d)).join('') + trainingCard(d, T) + (warn ? `<div class="card">${warn}</div>` : '');
   const wq = waterQuick()[0];
-  const actions = `<div class="card" style="padding:12px"><div class="grid2">
-    <button class="tl hero c-say" data-act="voice" style="min-height:112px"><span class="ico">🎙️</span><div><div class="ttl" style="font-size:18px">Say it</div><div class="sub">“2 eggs and a coffee”</div></div></button>
-    <button class="tl hero c-label" data-act="label" style="min-height:112px"><span class="ico">🏷️</span><div><div class="ttl" style="font-size:18px">Read the label</div><div class="sub">Say the nutrition facts</div></div></button></div>
-    <div class="row" style="margin-top:10px;gap:8px"><button class="btn" data-act="search" style="flex:1;padding:10px 6px">🔍 Search</button><button class="btn" data-act="scan" style="flex:1;padding:10px 6px">${ICON.scan.replace('<svg', '<svg width="18" height="18"')} Scan</button><button class="btn" data-act="recent" style="flex:1;padding:10px 6px">🕘 Recent</button><button class="btn" data-water="${wq[0]}" style="flex:1;padding:10px 6px;color:var(--s-water)" aria-label="Add ${wq[1]} water">💧 ${wq[1].replace(' ml', '')}</button></div></div>`;
+  const actions = `<div class="card" style="padding:12px"><div class="tgrid" style="margin:0">${scanHero()}</div></div>`;
   const hero = lay === 'cards' ? heroCards(X) : lay === 'compact' ? heroCompact(X) : heroRings(X);
   const level = lay === 'compact'
     ? `<div class="card" style="position:relative"><div class="row"><div class="lvl" style="flex:1"><div class="badge" style="width:40px;height:40px;font-size:16px">${lv.L}</div><div class="xp"><div class="row"><b>${rankName(lv.L)}</b><span class="mut small" style="margin-left:auto">score <b class="score">${ev.score || 0}</b> · 🔥 ${logStreak}</span></div><div class="xpbar"><i style="width:${lv.pct * 100}%"></i></div></div></div></div>${xpGain ? `<span class="xpfloat">+${xpGain} XP</span>` : ''}</div>`
@@ -600,19 +597,6 @@ function trainingCard(d) {
    ${d.training.on ? `<select class="inp" id="trainHours" style="width:auto;padding:8px 30px 8px 10px;min-height:44px">${[0.5, 1, 1.5, 2, 3].map(h => `<option ${h == d.training.hours ? 'selected' : ''} value="${h}">${h} h</option>`).join('')}</select>` : ''}
    <button class="switch ${d.training.on ? 'on' : ''}" data-act="training" role="switch" aria-checked="${!!d.training.on}" aria-label="Training day"></button></div></div>`;
 }
-/* Coach entry tile (js/coach.js owns the view; we only show its top pick + open it) */
-function coachTile() {
-  if (!window.FuelCoach) return '';
-  let top = null, M = null, supps = [], base = 0, ulKeys = [];
-  try { if (DB) { const r = FuelCoach.suggest(CUR, 3); M = r.M; top = r.picks && r.picks[0]; base = (r.picks || []).length;   // same call as Coach's todayCard → same PICKS indices
-    supps = (r.supps || []).slice(0, 2); ulKeys = FuelCoach.aboveUL ? FuelCoach.aboveUL(M.T).filter(k => supps.some(p => p.forK === k)) : []; } } catch (e) { top = null; supps = []; ulKeys = []; }
-  const amt = (k, v) => { const n = BY[k]; return fmt(v, n.dp || 0) + ' ' + n.unit + (n.iu ? ' / ' + fmt(v * n.iu) + ' IU' : ''); };
-  const suppHTML = supps.map((p, j) => `<button class="tsupp" data-coach-pick="${base + j}" aria-label="Review and log ${esc(p.c.nm)}"><span class="sb">💊 Supplement</span><span class="sn">${esc(p.c.nm)}<small>${esc(p.label || '')} · ${amt(p.forK, p.n[p.forK] || 0)} ${esc(BY[p.forK].short)}${p.c.own ? ' · yours' : ''}</small></span><span class="sp" aria-hidden="true">＋</span></button>`).join('');
-  const ulHTML = ulKeys.length ? `<div class="tul">ℹ️ ${ulKeys.map(k => `${esc(BY[k].name)}: your goal (${amt(k, M.T[k].goal)}) is above the general upper limit (${amt(k, M.T[k].ul)})`).join('; ')} — a goal this high is best followed with a clinician’s guidance.</div>` : '';
-  return `<div class="tl w2 c-coach"><button class="lb" data-coach="open" style="min-height:44px;color:inherit;text-align:left">🧭 What to eat next<span class="r">Coach ›</span></button>
-    ${top ? `<div class="pick"><div class="pn">${esc(String(top.c.nm).split(',').slice(0, 2).join(','))}<span>${esc(top.label || '')}${M && M.kcalLeft > 0 ? ' · ' + fmt(M.kcalLeft) + ' kcal left today' : ''}</span></div><button class="tb" data-coach-pick="0" aria-label="Review and log the top pick">+ Log</button></div>`
-      : `<div class="emptyt">${DB ? 'Ideas that close today’s gaps within your limits.' : 'Loading food ideas…'}</div>`}${suppHTML ? `<div class="tsupps">${suppHTML}</div>` : ''}${ulHTML}</div>`;
-}
 /* Tiles: flat colour blocks, big numbers, one-tap actions */
 function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain }) {
   const bar = (key, pct) => `<div class="tbar"><i data-k="${pk(key)}" data-w="${clamp(pct, 0, 1) * 100}%" style="width:${prevW(key)}"></i></div>`;
@@ -631,8 +615,7 @@ function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain
     return `<button class="tl c-focus" data-nut="${k}" style="${style}min-height:104px">${ok ? `<span class="done">${st.state === 'peak' ? '✦' : '✓'}</span>` : ''}<div class="lb">${esc(n.short || n.name)}</div><div><div class="big" style="font-size:26px">${fmtN(k, v)}<small>${n.unit}</small></div><div class="sub">${g != null ? (n.type === 'limit' ? 'limit ' : 'of ') + fmtN(k, g) + (n.iu ? ' · ' + iuOf(k, g) : '') : 'tracked'}</div>${g ? bar('t-' + k, v / g) : ''}</div></button>`;
   };
   return `<div class="tgrid">
-    <button class="tl hero c-say" data-act="voice"><span class="ico">🎙️</span><div><div class="ttl">Say it</div><div class="sub">“2 eggs and a coffee”</div></div></button>
-    <button class="tl hero c-label" data-act="label"><span class="ico">🏷️</span><div><div class="ttl">Read the label</div><div class="sub">Say the nutrition facts</div></div></button>
+    ${scanHero()}
     <button class="tl w2 c-kcal${kSh ? ' hit' : ''}" data-nut="kcal">${kHit ? '<span class="done">✓ On target</span>' : ''}<div class="lb">🔥 Calories${kHit ? '' : `<span class="r">${fmt(kV)} / ${fmt(kG)}</span>`}</div><div style="width:100%"><div class="big" style="font-size:44px">${fmt(Math.abs(rem))}<small>${rem >= 0 ? 'kcal left' : 'kcal over'}</small></div>${bar('t-kcal', kV / kG)}</div></button>
     ${mt('protein', '🥩', 'Protein')}
     <div class="tl c-water${wSh ? ' hit' : ''}" style="min-height:150px">${wHit ? '<span class="done">✓ Goal</span>' : ''}<div class="lb">💧 Water</div><div style="width:100%"><div class="big">${wv}<small>${wu}</small></div><div class="sub">of ${gv} ${gu}</div>${bar('t-water', wV / wG)}
@@ -641,8 +624,7 @@ function todayTiles({ T, t, d, c, lv, ev, logStreak, kG, kV, rem, microN, xpGain
     ${mt('fat', '🥑', 'Fat')}
     <div class="tl w2 c-items"><div class="lb">⚡ My items<span class="r" style="font-weight:600">tap = log · hold = change</span></div>
       ${shown.length ? `<div class="qrow">${shown.map(({ it, why }) => qiHTML(it, why)).join('')}</div>${items.length > 4 ? `<button class="more" data-act="qi-all">${QI_ALL ? 'Show fewer' : `Show all ${items.length}`}</button>` : ''}`
-        : `<div class="emptyt">Save foods with 🏷️ Read the label, ☆ favourite anything, or log something twice — it lands here for one-tap logging.</div>`}</div>
-    ${coachTile()}
+        : `<div class="emptyt">Save foods with 📷 Scan label or ▦ Scan barcode, ☆ favourite anything, or log something twice — it lands here for one-tap logging.</div>`}</div>
     <button class="tl c-micro" data-act="go-nutrients" style="min-height:120px"><div class="lb">🌈 Micros</div><div style="width:100%"><div class="big">${microN}<small>/ ${MICROS.length}</small></div><div class="sub">at baseline</div>${bar('t-micro', microN / MICROS.length)}</div></button>
     <button class="tl c-score" data-act="go-awards" style="min-height:120px">${xpGain ? `<span class="xpfloat">+${xpGain} XP</span>` : ''}<div class="lb">⭐ Score</div><div style="width:100%"><div class="big">${ev.score || 0}</div><div class="sub">🔥 ${logStreak} day${logStreak === 1 ? '' : 's'} · Lv ${lv.L}</div>${bar('t-xp', lv.pct)}</div></button>
     ${pins.map(focusT).join('')}
@@ -772,7 +754,7 @@ function renderLog() {
     $$('[data-edit]', tb).forEach(el => el.onclick = ev => { ev.stopPropagation(); const k = el.dataset.edit; if (k.startsWith('cus:')) openCustomFood(S.customFoods.find(c => 'cus:' + c.id === k)); else openRecipe(S.recipes.find(r => 'rec:' + r.id === k)); });
   } else if (LOG.tab === 'scan') {
     tb.innerHTML = `<div class="scan" id="scanbox"><video id="vid" playsinline muted></video><div class="frame"></div><div class="laser"></div></div>
-     <div class="mut small" id="scanmsg" style="margin:10px 2px">Point the camera at a barcode. Looks up Open Food Facts (needs internet).</div>
+     <div class="mut small" id="scanmsg" style="margin:10px 2px">Point the camera at a barcode. Looks up USDA &amp; Open Food Facts (needs internet; saved items work offline).</div>
      <div class="row"><input class="inp" id="bcode" inputmode="numeric" placeholder="Or type barcode (UPC/EAN)"><button class="btn pri" id="bgo">Look up</button></div>`;
     $('#bgo', tb).onclick = () => { const v = $('#bcode', tb).value.replace(/\D/g, ''); if (v.length >= 6) lookupBarcode(v); };
     startScan();
@@ -826,9 +808,9 @@ async function startScan() {
       hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E, ZX.BarcodeFormat.CODE_128]);
       const reader = new ZX.BrowserMultiFormatReader(hints, 250); SCAN.reader = reader;
       await reader.decodeFromConstraints({ video: { facingMode: 'environment' } }, vid, (res) => { if (res && SCAN && SCAN.active) { const c = res.getText(); stopScan(); lookupBarcode(c); } });
-      msg.textContent = 'Point the camera at a barcode. Looks up Open Food Facts (needs internet).';
+      if (SCAN && SCAN.active) msg.textContent = 'Point the camera at a barcode.';
     }
-  } catch (e) { msg.textContent = 'Camera unavailable (' + (e.name || e.message) + '). Type the barcode below.'; const sb = $('#scanbox'); if (sb) sb.classList.add('hidden'); }
+  } catch (e) { if (!SCAN || !SCAN.active) return; msg.textContent = 'Camera unavailable (' + (e.name || e.message) + '). Type the barcode below.'; const sb = $('#scanbox'); if (sb) sb.classList.add('hidden'); }
 }
 function stopScan() {
   if (!SCAN) return; SCAN.active = false;
@@ -839,7 +821,93 @@ function stopScan() {
 }
 const loaded = {};
 function loadScript(src) { return loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('load failed')); }; document.head.appendChild(s); })); }
+
+/* ---------- barcode → USDA FoodData Central Branded (manufacturer label data), then Open Food Facts (community) ---------- */
+const gtinKey = c => String(c || '').replace(/\D/g, '').replace(/^0+/, '');
+function gtinVariants(c) {
+  const d = String(c).replace(/\D/g, ''); const k = gtinKey(d); const v = new Set([d]);
+  [12, 13, 14].forEach(n => { if (k.length <= n) v.add(k.padStart(n, '0')); });
+  if (d.length === 8 && /^[01]/.test(d)) v.add(upcE2A(d));
+  return [...v];
+}
+function upcE2A(e) {   // UPC-E (8 digits incl. number system + check) → UPC-A
+  const n = e[0], d = e.slice(1, 7), ck = e[7]; const l = d[5]; let m;
+  if (l <= '2') m = d.slice(0, 2) + l + '0000' + d.slice(2, 5); else if (l === '3') m = d.slice(0, 3) + '00000' + d.slice(3, 5);
+  else if (l === '4') m = d.slice(0, 4) + '00000' + d[4]; else m = d.slice(0, 5) + '0000' + l;
+  return n + m + ck;
+}
+const FDC_NUM = {};
+[['kcal', ['208', '958', '957']], ['protein', ['203']], ['carbs', ['205']], ['fibre', ['291']], ['sugars', ['269']], ['addedSugar', ['539']], ['fat', ['204']], ['satFat', ['606']], ['monoFat', ['645']], ['polyFat', ['646']],
+ ['transFat', ['605']], ['cholesterol', ['601']], ['vitA', ['320']], ['vitC', ['401']], ['vitD', ['328']], ['vitE', ['323']], ['vitK', ['430']], ['thiamin', ['404']], ['riboflavin', ['405']], ['niacin', ['406']],
+ ['pantothenic', ['410']], ['b6', ['415']], ['biotin', ['416']], ['folate', ['435', '417']], ['b12', ['418']], ['choline', ['421']], ['calcium', ['301']], ['iron', ['303']], ['magnesium', ['304']], ['phosphorus', ['305']],
+ ['potassium', ['306']], ['sodium', ['307']], ['zinc', ['309']], ['copper', ['312']], ['manganese', ['315']], ['selenium', ['317']], ['iodine', ['314']], ['caffeine', ['262']], ['alcohol', ['221']]]
+  .forEach(([k, nums]) => nums.forEach((n, i) => FDC_NUM[n] = [k, i]));
+function fdcToFood(f) {
+  const n = {}, rank = {};
+  (f.foodNutrients || []).forEach(x => { const num = String(x.nutrientNumber || ''); const v = x.value; if (v == null || isNaN(v)) return;
+    let k, r = 0, val = +v;
+    if (FDC_NUM[num]) [k, r] = FDC_NUM[num]; else if (num === '318') { k = 'vitA'; r = 5; val = v * 0.3; } else if (num === '324') { k = 'vitD'; r = 5; val = v / 40; } else return;
+    if (k === 'copper' && /UG/i.test(x.unitName || '')) val = val / 1000;
+    if (rank[k] == null || r < rank[k]) { n[k] = val; rank[k] = r; } });
+  const unit = String(f.servingSizeUnit || '').toUpperCase(); const ml = /^(ML|MLT)$/.test(unit); const sg = f.servingSize && /^(G|GRM|ML|MLT)$/.test(unit) ? +f.servingSize : null;
+  const hh = String(f.householdServingFullText || '').replace(/\s*\(.*$/, '').trim();
+  const title = s => String(s || '').toLowerCase().replace(/\b[a-z]/g, m => m.toUpperCase());
+  return { name: title(f.description), brand: title(f.brandName || f.brandOwner || '').replace(/[,.]?\s+(Sales\s+)?(Inc|Llc|Ltd|Co|Corp|Company|Corporation|Usa|Us)\.?$/i, '').replace(/\s+Sales$/i, ''), servingG: sg || 100, servingLabel: hh && hh.length < 30 ? hh : '', per: 'serving', n100: roundN(n), hyd: ml || /beverage|drink|juice|milk|water|soda/i.test(f.brandedFoodCategory || ''), code: f.gtinUpc,
+    _src: { kind: 'usda', label: 'USDA · manufacturer label', note: `USDA FoodData Central Branded Foods (${f.brandOwner || 'manufacturer'}${f.publishedDate ? ', ' + f.publishedDate : ''}). Values are per 100 g × serving.` } };
+}
+async function fetchJSON(u, ms = 9000) { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), ms); try { const r = await fetch(u, { signal: ctl.signal }); if (r.status === 429) throw Object.assign(new Error('USDA rate limit'), { rate: true }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { clearTimeout(to); } }
+async function fdcBarcode(code) {
+  const key = (S.settings.usdaKey || '').trim() || 'DEMO_KEY';
+  const q = gtinVariants(code).map(v => 'gtinUpc:' + v).join(' OR ');
+  const j = await fetchJSON('https://api.nal.usda.gov/fdc/v1/foods/search?dataType=Branded&pageSize=10&query=' + encodeURIComponent(q) + '&api_key=' + encodeURIComponent(key));
+  const hits = (j.foods || []).filter(f => gtinKey(f.gtinUpc) === gtinKey(code));
+  if (!hits.length) return null;
+  hits.sort((a, b) => String(b.publishedDate || b.modifiedDate || '').localeCompare(String(a.publishedDate || a.modifiedDate || '')));
+  return fdcToFood(hits[0]);
+}
+async function offBarcodeFood(code) {
+  for (const host of ['world', 'ca']) {
+    for (const v of [String(code).replace(/\D/g, ''), gtinKey(code).padStart(13, '0')].filter((x, i, a) => a.indexOf(x) === i)) {
+      let j; try { j = await fetchJSON(`https://${host}.openfoodfacts.org/api/v2/product/${encodeURIComponent(v)}.json?fields=${OFF_FIELDS}`); } catch (e) { if (/HTTP 404/.test(e.message)) continue; throw e; }
+      if (!j.product || j.status === 0) continue;
+      j.product.code = j.product.code || v; const it = offItem(j.product); if (!Object.keys(it.n100).length) continue;
+      const p = j.product;
+      return { name: it.name, brand: p.brands ? String(p.brands).split(',')[0].trim() : '', servingG: it.servingG || 100, servingLabel: p.serving_size ? String(p.serving_size).replace(/\s*\(.*$/, '').slice(0, 28) : '', per: 'serving', n100: roundN(it.n100), hyd: it.hyd, code: String(code),
+        _src: { kind: 'off', label: 'Open Food Facts · community', note: `Open Food Facts (${host === 'ca' ? 'Canada' : 'world'} database, community-edited). Check against the package.` } };
+    }
+  }
+  return null;
+}
+function openBarcodeReview(food, code) {
+  const src = food._src; delete food._src;
+  const hl = {}; Object.keys(food.n100).forEach(k => hl[k] = 'ok');
+  food.code = String(code);
+  openCustomFood(food, { title: 'Check & log', primaryLog: true, review: { hl, notes: {}, unparsed: [], source: src, code: String(code), ref: S.settings.dvRef || 'CA', nameMissing: !food.name } });
+}
 async function lookupBarcode(code) {
+  code = String(code).replace(/\D/g, '');
+  const msg = $('#scanmsg'); haptic(); stopScan();
+  if (LOG && LOG.mode === 'pick') return lookupBarcodeOFF(code);
+  S.counters.scans = (S.counters.scans || 0) + 1; save(); checkAchievements();
+  const mine = S.customFoods.find(c => c.code && gtinKey(c.code) === gtinKey(code));
+  const closeLog = () => { if (LOG && LOG.rec) closeSheet(LOG.rec); };
+  if (mine) { closeLog(); openCustomFood(mine, { title: 'Check & log', primaryLog: true, review: { hl: Object.fromEntries(Object.keys(mine.n100).map(k => [k, 'ok'])), notes: {}, unparsed: [], code, ref: S.settings.dvRef || 'CA', source: { kind: 'cus', label: 'Saved · offline', note: 'You saved this barcode before — tap log, or fix anything first.' } } }); return; }
+  if (msg) msg.textContent = 'Looking up ' + code + ' in USDA FoodData Central…';
+  let food = null, why = [];
+  if (!navigator.onLine) why.push('offline');
+  else {
+    try { food = await fdcBarcode(code); } catch (e) { why.push(e.rate ? 'USDA limit reached — add a free key in Settings' : 'USDA unavailable'); }
+    if (!food) { if (msg) msg.textContent = 'Not in USDA — trying Open Food Facts…'; try { food = await offBarcodeFood(code); } catch (e) { why.push('Open Food Facts unavailable'); } }
+  }
+  if (food) { closeLog(); openBarcodeReview(food, code); return; }
+  if (msg) {
+    msg.innerHTML = `<b>No match for ${esc(code)}</b>${why.length ? ' (' + esc(why.join('; ')) + ')' : ''}.<div class="grid2" style="margin-top:10px"><button class="btn pri" id="mklabel">📷 Scan the label instead</button><button class="btn" id="mkc">✍️ Type it in</button></div>`;
+    $('#mklabel').onclick = () => { closeLog(); if (window.FuelScan) FuelScan.open({ code }); };
+    $('#mkc').onclick = () => { closeLog(); openCustomFood({ name: '', brand: '', code }, { title: 'New food', primaryLog: true }); };
+  }
+}
+
+async function lookupBarcodeOFF(code) {
   const msg = $('#scanmsg'); if (msg) msg.textContent = 'Looking up ' + code + '…';
   haptic();
   try {
@@ -965,17 +1033,26 @@ function openCustomFood(c, opts = {}) {
   const note = k => R && R.notes[k] ? `<div class="hlnote">${esc(R.notes[k])}</div>` : '';
   const sg = c.servingG || 100;
   const per = c.per || (c.servingG ? 'serving' : '100g');
-  const vals = k => { const v = c.n100 && c.n100[k]; if (v == null) return ''; const x = per === 'serving' ? v * sg / 100 : v; return +x.toPrecision(4); };
+  const vals = k => { const v = c.n100 && c.n100[k]; if (v == null) return ''; const x = per === 'serving' ? v * sg / 100 : v; if (R && R.source && per === 'serving') return x >= 100 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : +x.toPrecision(2); return +x.toPrecision(4); };
   const more = N.filter(n => !CF_MAIN.includes(n.key) && !n.derived && n.key !== 'moisture');
   const fld = n => `<div class="field"><label>${n.name} (${n.unit})</label><input class="inp${hlc(n.key)}" inputmode="decimal" type="number" step="any" data-cf="${n.key}" value="${vals(n.key)}">${note(n.key)}</div>`;
   const moreOpen = R && more.some(n => R.hl[n.key]);
   const nParsed = R ? Object.keys(R.hl).length : 0;
-  const reviewHead = R ? `<div class="card" style="margin:0 0 12px;padding:12px">
+  const srcBadge = R && R.source ? `<span class="srcb ${R.source.kind}">${esc(R.source.label)}</span>` : '';
+  const reviewHead = R && R.scan ? `<div class="card" style="margin:0 0 12px;padding:12px">
+     <div class="row" style="gap:12px;align-items:flex-start">${R.scan.thumb ? `<img class="scanthumb" src="${R.scan.thumb}" alt="Your label photo">` : ''}<div style="flex:1;min-width:0"><b>📷 Read ${nParsed} nutrient${nParsed === 1 ? '' : 's'} from the photo</b><div class="mut small" style="margin-top:4px">Check the amber fields against the label — tap any field to fix it.</div>${R.code ? `<div class="tiny mut" style="margin-top:4px">Barcode ${esc(R.code)} will be saved with this food.</div>` : ''}</div></div>
+     <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="cfretake" style="flex:1">📷 Retake</button><div class="seg" id="cfdv" style="margin:0;width:auto"><button data-v="CA" class="${R.ref === 'CA' ? 'on' : ''}" aria-label="Canadian daily values">🇨🇦 DV</button><button data-v="US" class="${R.ref === 'US' ? 'on' : ''}" aria-label="US daily values">🇺🇸 DV</button></div></div>
+     <div class="tiny" style="margin-top:10px"><span class="lg ok"></span>read clearly <span class="lg dv"></span>from % DV <span class="lg assumed"></span>check this</div>
+     ${R.scan.text ? `<details style="margin-top:8px"><summary class="mut small" style="min-height:44px;display:flex;align-items:center">What the camera read</summary><pre class="ocrtxt">${esc(R.scan.text)}</pre></details>` : ''}</div>`
+   : R && R.source ? `<div class="card" style="margin:0 0 12px;padding:12px">
+     <div class="row" style="gap:8px;flex-wrap:wrap"><b style="flex:1">▦ ${esc(R.code || '')}</b>${srcBadge}</div>
+     <div class="mut small" style="margin-top:6px">${esc(R.source.note || 'Check the serving and values, then log.')}</div></div>`
+   : R ? `<div class="card" style="margin:0 0 12px;padding:12px">
      <div class="row"><b style="flex:1">🏷️ Found ${nParsed} nutrient${nParsed === 1 ? '' : 's'}</b><div class="seg" id="cfdv" style="margin:0;width:auto"><button data-v="CA" class="${R.ref === 'CA' ? 'on' : ''}">🇨🇦 DV</button><button data-v="US" class="${R.ref === 'US' ? 'on' : ''}">🇺🇸 DV</button></div></div>
      <div class="mut small" style="margin-top:6px">“${esc(R.text)}”</div>
      <div class="tiny" style="margin-top:8px"><span class="lg ok"></span>heard <span class="lg dv"></span>from % DV <span class="lg assumed"></span>unit assumed — check</div>
-     ${R.unparsed.length ? `<div class="unparsed"><b>Didn't understand (${R.unparsed.length})</b>${R.unparsed.map(u => `<div>• ${esc(u)}</div>`).join('')}</div>` : ''}</div>` : '';
-  const html = reviewHead + `<div class="field"><label>Name</label><input class="inp${R && R.nameMissing ? ' hl-bad' : R ? ' hl-ok' : ''}" id="cfn" value="${esc(c.name || '')}" placeholder="e.g. Oikos Pro yogurt"></div>
+     ${R.unparsed && R.unparsed.length ? `<div class="unparsed"><b>Didn't understand (${R.unparsed.length})</b>${R.unparsed.map(u => `<div>• ${esc(u)}</div>`).join('')}</div>` : ''}</div>` : '';
+  const html = reviewHead + `<div class="field"><label>Name</label><input class="inp${R && R.nameMissing ? ' hl-bad' : R ? ' hl-ok' : ''}" id="cfn" value="${esc(c.name || '')}" placeholder="${R && R.nameMissing ? 'What is it? e.g. Kirkland protein bar' : 'e.g. Oikos Pro yogurt'}">${R && R.nameMissing ? '<div class="hlnote" style="color:var(--s-bad)">Give it a name so you can find it again</div>' : ''}</div>
    <div class="f2"><div class="field"><label>Brand (optional)</label><input class="inp" id="cfb" value="${esc(c.brand || '')}"></div><div class="field"><label>Serving size (g or ml)</label><input class="inp" id="cfs" type="number" inputmode="decimal" step="any" value="${sg}"></div></div>
    <div class="field"><label>Serving label (optional)</label><input class="inp" id="cfsl" value="${esc(c.servingLabel || '')}" placeholder="e.g. 1 cup, 1 bar, 1 scoop"></div>
    <label class="mut small">Nutrition values entered per</label>
@@ -983,16 +1060,21 @@ function openCustomFood(c, opts = {}) {
    <div class="f2">${N.filter(n => CF_MAIN.includes(n.key)).map(fld).join('')}</div>
    <details style="margin-bottom:12px"${moreOpen ? ' open' : ''}><summary class="mut" style="padding:8px 0;font-weight:600">More nutrients (vitamins, minerals, omegas)</summary><div class="f2" style="margin-top:8px">${more.map(fld).join('')}</div></details>
    <div class="row" style="margin-bottom:14px"><div style="flex:1"><b style="font-size:14px">It's a drink</b><div class="mut small">Counts toward hydration; enables ml/cup units</div></div><button class="switch ${c.hyd ? 'on' : ''}" id="cfh"></button></div>
-   ${R || !editing ? `<label class="mut small">Log to</label><div class="chips" id="cfmeal" style="margin:6px 0 12px">${MEALS.map(m => `<button class="chip ${m[0] === defaultMeal() ? 'on' : ''}" data-m="${m[0]}">${m[2]} ${m[1]}</button>`).join('')}</div>
+   ${opts.primaryLog ? `<label class="mut small">Log to</label><div class="chips" id="cfmeal" style="margin:6px 0 12px">${MEALS.map(m => `<button class="chip ${m[0] === defaultMeal() ? 'on' : ''}" data-m="${m[0]}">${m[2]} ${m[1]}</button>`).join('')}</div>
+   <button class="btn pri block" id="cflog" style="padding:16px;font-size:17px">✓ Looks right — log it</button><button class="btn block" id="cfsave" style="margin-top:10px">Save only</button>
+   <div class="tiny dim" style="margin-top:8px">Both save it to <b>My items</b> as a favourite${c.code ? ', keyed by its barcode — rescanning it is instant, even offline' : ''}.</div>`
+   : R || !editing ? `<label class="mut small">Log to</label><div class="chips" id="cfmeal" style="margin:6px 0 12px">${MEALS.map(m => `<button class="chip ${m[0] === defaultMeal() ? 'on' : ''}" data-m="${m[0]}">${m[2]} ${m[1]}</button>`).join('')}</div>
    <div class="grid2"><button class="btn pri" id="cfsave">⭐ Save item</button><button class="btn" id="cflog" style="background:linear-gradient(135deg,rgba(52,211,153,.35),rgba(34,211,238,.2))">⚡ Save & log now</button></div>
    <div class="tiny dim" style="margin-top:8px">Saved items are favourited and appear in <b>My items</b> on Today for one-tap logging.</div>` : `<button class="btn pri block" id="cfsave">Save food</button>`}
    ${editing ? '<button class="btn danger block" id="cfdel" style="margin-top:10px">Delete food</button>' : ''}`;
-  const rec = openSheet(editing ? 'Edit food' : 'Custom food', html, { full: true });
+  const rec = openSheet(opts.title || (editing ? 'Edit food' : 'Custom food'), html, { full: true });
   const sh = rec.sh; let perSel = per, hyd = !!c.hyd; let mealSel = defaultMeal();
   if (R && !R.servingMissing) { const i = $('#cfs', sh); i.classList.add(R.notes._serving ? 'hl-assumed' : 'hl-ok'); if (c.servingLabel) $('#cfsl', sh).classList.add('hl-ok'); if (R.notes._serving) i.insertAdjacentHTML('afterend', '<div class="hlnote">No unit heard — assumed grams</div>'); }
   if (R && R.servingMissing) { const i = $('#cfs', sh); i.classList.add('hl-assumed'); i.insertAdjacentHTML('afterend', '<div class="hlnote">No serving size heard — values treated as per 100 g</div>'); }
   $$('#cfmeal .chip', sh).forEach(b => b.onclick = () => { mealSel = b.dataset.m; $$('#cfmeal .chip', sh).forEach(x => x.classList.toggle('on', x === b)); });
-  $$('#cfdv button', sh).forEach(b => b.onclick = () => { if (b.dataset.v === R.ref) return; S.settings.dvRef = b.dataset.v; save(); closeSheet(rec); openLabelReview(parseLabel(R.text, b.dataset.v), R.text); });
+  $$('#cfdv button', sh).forEach(b => b.onclick = () => { if (b.dataset.v === R.ref) return; S.settings.dvRef = b.dataset.v; save(); closeSheet(rec); if (R.redo) R.redo(b.dataset.v); else openLabelReview(parseLabel(R.text, b.dataset.v), R.text); });
+  const rt = $('#cfretake', sh); if (rt) rt.onclick = () => { closeSheet(rec); R.scan.retake(); };
+  if (R && R.nameMissing) setTimeout(() => { const n = $('#cfn', sh); if (n && !n.value) n.focus(); }, 450);
   $$('#cfper button', sh).forEach(b => b.onclick = () => { perSel = b.dataset.per; $$('#cfper button', sh).forEach(x => x.classList.toggle('on', x === b)); });
   $('#cfh', sh).onclick = e => { hyd = !hyd; e.currentTarget.classList.toggle('on', hyd); };
   const doSave = logNow => {
@@ -1001,11 +1083,12 @@ function openCustomFood(c, opts = {}) {
     const n100 = {}; $$('[data-cf]', sh).forEach(i => { if (i.value !== '' && !isNaN(i.value)) n100[i.dataset.cf] = parseFloat(i.value) * f; });
     if (hyd) n100.moisture = Math.max(0, 100 - (n100.protein || 0) - (n100.carbs || 0) - (n100.fat || 0));
     const sl = $('#cfsl', sh).value.trim();
-    const obj = { id: c.id || uid(), name, brand: $('#cfb', sh).value.trim(), servingG: s, servingLabel: sl, per: perSel, n100: roundN(n100), hyd, code: c.code, dens: hyd ? 1 : null,
+    const same = c.code && S.customFoods.find(x => x.code && gtinKey(x.code) === gtinKey(c.code));   // keyed by barcode: rescans update the same food
+    const obj = { id: c.id || (same && same.id) || uid(), name, brand: $('#cfb', sh).value.trim(), servingG: s, servingLabel: sl, per: perSel, n100: roundN(n100), hyd, code: c.code, dens: hyd ? 1 : null,
       portions: [[(sl || '1 serving'), s]].concat((c.portions || []).filter(p => !/serving/.test(p[0]))) };
     const i = S.customFoods.findIndex(x => x.id === obj.id); if (i >= 0) S.customFoods[i] = obj; else S.customFoods.unshift(obj);
     const item = customItem(obj);
-    if (!editing && !S.favs.some(f => f.key === item.key)) S.favs.unshift(snapshot(item));
+    if ((!editing || opts.primaryLog) && !S.favs.some(f => f.key === item.key)) S.favs.unshift(snapshot(item));
     else { const fi = S.favs.findIndex(f => f.key === item.key); if (fi >= 0) S.favs[fi] = snapshot(item); }
     save(); closeSheet(rec);
     if (logNow) quickLog(item, mealSel); else { toast('⭐', editing ? 'Food saved' : 'Saved to My items', name); if (VIEW === 'today') render(); }
@@ -1540,7 +1623,7 @@ function openLabel() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const ref = S.settings.dvRef || 'CA';
   const ex = 'Kirkland protein bar, serving 60 grams, 190 calories, 21 grams protein, 7 fat, 22 carbs, 15 fibre, 1 gram sugar, 200 milligrams sodium, calcium 10 percent';
-  const rec = openSheet('Read the label', `
+  const rec = openSheet('Type a label', `
     <div class="mut small" style="margin:-4px 0 10px">Say the <b>name</b>, the <b>serving size</b>, then each nutrient, in any order. Numbers as words or digits; g, mg, mcg, IU or % daily value.</div>
     <div class="field"><textarea class="inp" id="ltxt" rows="5" style="resize:none;font-size:16.5px;line-height:1.4" placeholder="${esc(ex)}"></textarea></div>
     <div class="row" style="gap:10px">${SR ? `<button class="btn" id="lmic" style="flex:none;width:64px;font-size:22px">🎙️</button>` : ''}<button class="btn pri" id="lgo" style="flex:1;padding:16px">🏷️ Read nutrients</button></div>
@@ -1672,7 +1755,7 @@ function myItemsCard() {
   return `<div class="card"><h2>My items <span class="r" style="color:var(--mut);font-weight:500">tap = log · hold = change</span></h2>
    ${items.length ? `<div class="qgrid">${items.slice(0, QI_ALL ? 12 : 6).map(({ it, why }) => { const ds = defaultServing(it); const kc = (it.n100.kcal || 0) * ds.g / 100, pr = (it.n100.protein || 0) * ds.g / 100;
      return `<div class="qi" data-qi="${esc(it.key)}" role="button" tabindex="0"><div class="qn">${why === 'fav' ? '<span style="color:var(--s-gold)">★</span> ' : why === 'freq' ? '🔁 ' : ''}${esc(it.name.split(',').slice(0, 2).join(','))}</div><div class="qs">${esc(ds.label.slice(0, 22))}</div><div class="qk"><b>${fmt(kc)}</b> kcal · <b>${fmt(pr)}</b>g P</div><button class="qe" data-qiedit="${esc(it.key)}" aria-label="Change serving">⋯</button></div>`; }).join('')}</div>${items.length > 6 ? `<button class="btn block" data-act="qi-all" style="margin-top:8px;padding:9px;font-size:13px">${QI_ALL ? 'Show fewer' : `Show all ${items.length}`}</button>` : ''}`
-     : `<div class="empty" style="padding:14px 6px">Save foods with <b>🏷️ Read the label</b>, ☆ favourite anything, or log something twice — it shows up here for one-tap logging.</div>`}</div>`;
+     : `<div class="empty" style="padding:14px 6px">Save foods with <b>📷 Scan label</b> or <b>▦ Scan barcode</b>, ☆ favourite anything, or log something twice — it shows up here for one-tap logging.</div>`}</div>`;
 }
 
 /* ---------- voice / text flow ---------- */
@@ -1710,15 +1793,20 @@ function openVoice() {
     closeSheet(rec); openReview(rows, { notes: notes || ('“' + text + '”'), via, title: 'Review' });
   };
 }
+/* Two hero tiles: Scan barcode (USDA Branded → Open Food Facts) and Scan label (photo → on-device OCR). Small options below. */
+function scanHero(hub) {
+  const wq = waterQuick()[0];
+  return `<button class="tl hero c-say" data-act="scan" aria-label="Scan barcode"><span class="ico">▦</span><div><div class="ttl">Scan barcode</div><div class="sub">USDA &amp; Open Food Facts</div></div></button>
+    <div class="tl hero c-label scanhero"><button class="hit" data-act="snap" aria-label="Scan label — take a photo of the nutrition facts"><span class="ico">📷</span><div><div class="ttl">Scan label</div><div class="sub">Photo → check → log</div></div></button><button class="lib" data-act="snap-lib" aria-label="Choose a label photo from your library">🖼️</button></div>
+    <div class="tl w2 neutral minor" role="group" aria-label="Other ways to log">${hub ? '<button data-act="voice">🎙️ Say it</button>' : '<button data-act="search">🔍 Search</button><button data-act="recent">🕘 Recent</button>'}<button data-act="label">⌨️ Type label</button>${hub ? '' : `<button data-water="${wq[0]}" aria-label="Add ${wq[1]} water">💧 +${wq[1].replace(' ml', '')}</button>`}</div>`;
+}
 function openQuickLog(meal) {
   const qi = myItems().slice(0, 8);
-  openSheet('Log', `<div class="tgrid" style="margin-bottom:10px">
-    <button class="tl hero c-say" data-act="voice"><span class="ico">🎙️</span><div><div class="ttl">Say it</div><div class="sub">Food name + amount</div></div></button>
-    <button class="tl hero c-label" data-act="label"><span class="ico">🏷️</span><div><div class="ttl">Read the label</div><div class="sub">Nutrition facts</div></div></button></div>
+  openSheet('Log', `<div class="tgrid" style="margin-bottom:10px">${scanHero(true)}</div>
     ${qi.length ? `<h2 class="mut small" style="margin:4px 0 8px;letter-spacing:.08em">MY ITEMS · TAP TO LOG</h2><div class="qstrip" style="margin-bottom:12px">${qi.map(({ it, why }) => qiHTML(it, why)).join('')}</div>` : ''}
     <h2 class="mut small" style="margin:4px 0 8px;letter-spacing:.08em">WATER</h2><div class="qbtns" style="margin:0 0 14px">${waterQuick().map(([ml, l]) => `<button class="qb" data-water="${ml}">+${l}</button>`).join('')}</div>
-    <div class="grid2"><button class="btn" data-act="search" ${meal ? `data-meal="${meal}"` : ''}>🔍 Search</button><button class="btn" data-act="scan">▦ Barcode</button></div>
-    <div class="grid2" style="margin-top:10px"><button class="btn" data-act="recent">🕘 Recent</button><button class="btn" data-act="manual-food">✍️ Enter manually</button></div>`);
+    <div class="grid2"><button class="btn" data-act="search" ${meal ? `data-meal="${meal}"` : ''}>🔍 Search</button><button class="btn" data-act="recent">🕘 Recent</button></div>
+    <button class="btn block" data-act="manual-food" style="margin-top:10px">✍️ Enter manually</button>`);
 }
 
 /* ---------------- profile & settings ---------------- */
@@ -1739,13 +1827,14 @@ function openProfile() {
     <div class="note"><div class="kv"><div>BMR</div><div>${fmt(E.bmr)} kcal</div><div>TDEE</div><div>${fmt(E.tdee)} kcal</div><div>Daily target</div><div>${fmt(E.kcal)} kcal</div><div>Protein · fat · carbs</div><div>${E.protein} · ${E.fatG} · ${E.carbsG} g</div></div>${profileNow().weightEst ? '<div class="tiny" style="margin-top:6px;color:var(--warn)">Using a 180 lb placeholder until you enter your weight.</div>' : ''}</div></div>
    <div class="card"><h2>Preferences</h2>
     <div class="field"><label>Water units</label><div class="seg" id="wu"><button data-v="ml" class="${S.settings.waterUnit !== 'oz' ? 'on' : ''}">ml / L</button><button data-v="oz" class="${S.settings.waterUnit === 'oz' ? 'on' : ''}">fl oz</button></div></div>
-    <button class="btn block" data-act="pins">📌 Edit dashboard pins</button></div>
+    <button class="btn block" data-act="pins">📌 Edit dashboard pins</button>
+    <div class="field" style="margin-top:12px"><label for="usdakey">USDA API key (free, optional)</label><input class="inp" id="usdakey" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.settings.usdaKey || '')}" placeholder="DEMO_KEY is used if empty"><div class="tiny mut" style="margin-top:4px">Barcode lookups use USDA FoodData Central. The shared DEMO_KEY allows ~30 lookups an hour; a free key from api.data.gov raises that to 1,000. Stored only on this phone, never exported.</div></div></div>
    <div class="card"><h2>Data</h2>
     <div class="f2"><button class="btn" id="exp">⬇️ Export backup</button><button class="btn" id="imp">⬆️ Import backup</button></div>
     <input type="file" id="impf" accept="application/json,.json" class="hidden">
     <div class="tiny mut" style="margin:10px 0">Everything lives on this phone only. Export regularly (e.g. save to Files/iCloud). Food data: ${DB ? fmt(DB.foods.length) + ' foods — ' : ''}USDA FoodData Central (Foundation, SR Legacy, FNDDS), Health Canada CNF 2015, Open Food Facts. No paid services, no accounts, no API keys.</div>
     <button class="btn danger block" id="wipe">Erase all data</button></div>
-   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.4.3 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
+   <div class="tiny dim" style="text-align:center;margin:6px 0 10px">Fuel v1.5.0 · 100% free & offline-first · Not medical advice. Targets from NASEM/Health Canada DRIs & sports-nutrition position stands.</div>`;
   const rec = openSheet('Profile & settings', html, { full: true, onClose: () => { invalidate(); render(); } });
   const sh = rec.sh;
   if (window.FuelLook) FuelLook.bind(sh, () => render());
@@ -1755,6 +1844,7 @@ function openProfile() {
   $('#ulw', sh).onclick = e => { S.profile.useLatestWeight = !S.profile.useLatestWeight; e.currentTarget.classList.toggle('on', S.profile.useLatestWeight); invalidate(); save(); };
   $$('#tier button', sh).forEach(b => b.onclick = () => { S.settings.tier = b.dataset.v; $$('#tier button', sh).forEach(x => x.classList.toggle('on', x === b)); invalidate(); save(); });
   $$('#wu button', sh).forEach(b => b.onclick = () => { S.settings.waterUnit = b.dataset.v; $$('#wu button', sh).forEach(x => x.classList.toggle('on', x === b)); save(); });
+  $('#usdakey', sh).onchange = e => { S.settings.usdaKey = e.target.value.trim(); save(); };
   $('#exp', sh).onclick = exportData;
   $('#imp', sh).onclick = () => $('#impf', sh).click();
   $('#impf', sh).onchange = e => importData(e.target.files[0]);
@@ -1766,7 +1856,7 @@ function openAppearance() {
   FuelLook.bind(rec.sh, () => render());
 }
 function exportData() {
-  const copy = JSON.parse(JSON.stringify(S));
+  const copy = JSON.parse(JSON.stringify(S)); if (copy.settings) delete copy.settings.usdaKey;
   let look = null; try { look = JSON.parse(localStorage.getItem('fuel.look')); } catch (e) {}
   const blob = new Blob([JSON.stringify({ app: 'fuel', exported: new Date().toISOString(), data: copy, look }, null, 1)], { type: 'application/json' });
   const name = 'fuel-backup-' + today() + '.json'; const file = new File([blob], name, { type: 'application/json' });
@@ -1805,9 +1895,8 @@ function openWaterList() {
 /* ---------------- router & events ---------------- */
 function render() {
   const app = $('#app'); const y = window.scrollY;
-  const fn = { today: renderToday, nutrients: renderNutrients, progress: renderProgress, awards: renderAwards }[VIEW] || (window.FuelCoach && FuelCoach.views[VIEW]) || renderToday;
+  const fn = { today: renderToday, nutrients: renderNutrients, progress: renderProgress, awards: renderAwards }[VIEW] || renderToday;
   app.innerHTML = `<div class="view">${fn()}</div>`;
-  if (window.FuelCoach) FuelCoach.afterRender(app, VIEW); // Coach card on Today (js/coach.js)
   $$('#tabbar .tab').forEach(t => t.classList.toggle('on', t.dataset.tab === VIEW));
   animateRings(app);
   const dp = $('#datepick'); if (dp) dp.onchange = () => { if (dp.value) { CUR = dp.value; render(); } };
@@ -1855,6 +1944,8 @@ document.addEventListener('click', e => {
     case 'add-goal': openAddGoal(); break;
     case 'log-weight': openWeigh(); break;
     case 'label': closeQ(); openLabel(); break;
+    case 'snap': closeQ(); if (window.FuelScan) FuelScan.open(); break;
+    case 'snap-lib': closeQ(); if (window.FuelScan) FuelScan.open({ library: true }); break;
     case 'qi-all': QI_ALL = !QI_ALL; render(); break;
     case 'manual-food': closeQ(); openCustomFood(null); break;
     case 'voice': closeQ(); openVoice(); break;
@@ -1882,6 +1973,6 @@ function flushSave() { if (saveT) { clearTimeout(saveT); saveT = null; saveNow()
 window.addEventListener('pagehide', flushSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { flushSave(); return; } { const t = today(); if (t !== lastToday) { if (CUR === lastToday) CUR = t; lastToday = t; invalidate(); render(); } } });
 window.__fuel = { S: () => S, totals, evalDay, targetsFor, searchLocal, localParse, parseLabel, matchItems, openReview, gameCtx, loadDB, render, go, setDay: d => { CUR = d; render(); } };
-// used by the Coach (js/coach.js): read-only helpers + the existing review / water logging flows
-Object.assign(window.__fuel, { quickLog, undoLog, portionText, DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
+// helpers for js/scan.js (label photo → OCR) and the tests
+Object.assign(window.__fuel, { closeAll: closeAllSheets, gtinVariants, gtinKey, fdcToFood, lookupBarcode, labelToCustom, DV, openSheet, closeSheet, toast, convLabel, save, customItem, snapshot, uid, roundN, defaultMeal, MEALS, openCustomFood, openLabel, CF_MAIN, quickLog, undoLog, portionText, DB: () => DB, cur: () => CUR, usdaItem, suppItem, SUPPS, myItems, defaultServing, addWater, entryHydration, fmt, esc, today, addDays, parseD, dateLabel });
 })();

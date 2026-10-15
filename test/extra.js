@@ -7,7 +7,7 @@ const { chromium } = require('/workspace/pwtest/node_modules/playwright-core');
   await p.goto('http://127.0.0.1:8765/'); await p.waitForTimeout(2500);
   // offline (free) voice parser — no network AI
   await p.reload(); await p.waitForTimeout(1500);
-  await p.click('[data-act=voice]'); await p.waitForTimeout(500);
+  await p.click('#fab'); await p.waitForTimeout(500); await p.click('.sheet.on [data-act=voice]'); await p.waitForTimeout(500);
   await p.fill('#vtxt', 'a 12 oz latte and a bagel'); await p.click('#vgo'); await p.waitForTimeout(2000);
   console.log('voice review', await p.$$eval('.sheet .card', x => x.map(c => c.innerText.replace(/\s+/g, ' ').slice(0, 110))));
   await p.click('#rapprove'); await p.waitForTimeout(800);

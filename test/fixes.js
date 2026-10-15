@@ -51,9 +51,9 @@ let fails = 0; const ok = (name, cond, extra) => { console.log((cond ? 'ok   ' :
   const info = await p.evaluate(() => [...document.querySelectorAll('.sheet.on')].pop().innerText);
   ok('vitamin D info sheet: calm 25(OH)D note + IU', info.includes('Your goal is above the NASEM upper limit (4,000 IU); consider monitoring blood 25(OH)D with a doctor.') && info.includes('10,000 IU'));
   await p.evaluate(() => [...document.querySelectorAll('.sheet.on [data-close]')].pop().click()); await p.waitForTimeout(400);
-  // Coach does not treat the vitamin D UL as a cap
+  // the vitamin D UL is info-only (not a cap)
   const co = await p.evaluate(() => { const n = window.NUTR; return n.BY.vitD.ulInfo === true; });
-  ok('vitamin D UL flagged info-only for Coach caps', co);
+  ok('vitamin D UL flagged info-only (no cap)', co);
   // Creatine: tile, My items, one tap = 5 g
   const cr = await p.evaluate(async () => { const tile = !!document.querySelector('#app [data-nut=creatine]'); const q = [...document.querySelectorAll('#app .qi')].find(x => /Creatine/.test(x.innerText)); const label = q && q.innerText; q && q.click(); await new Promise(r => setTimeout(r, 300));
     const T = __fuel.targetsFor(__fuel.today()); return { tile, label, t: __fuel.totals(__fuel.today()).t.creatine, goal: T.creatine.goal, pinned: __fuel.S().settings.pinned.includes('creatine') }; });

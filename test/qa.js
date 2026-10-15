@@ -33,8 +33,8 @@ const fs = require('fs');
   R.checks.tabWidths = await p.evaluate(() => [...document.querySelectorAll('#tabbar .tab')].map(t => Math.round(t.getBoundingClientRect().width)));
   await shot('01b-first-run-full', true);
   // Say it (Today tile)
-  start('Say it (Today tile → type → Find → Approve)');
-  await tap('#app [data-act=voice]'); await p.fill('#vtxt', '2 eggs, a cup of oatmeal and a black coffee'); await tap('#vgo', { wait: 1500 }); await shot('02-say-review'); await audit('say review');
+  start('Say it (＋ hub → type → Find → Approve)');
+  await tap('#fab'); await tap('.sheet.on [data-act=voice]'); await p.fill('#vtxt', '2 eggs, a cup of oatmeal and a black coffee'); await tap('#vgo', { wait: 1500 }); await shot('02-say-review'); await audit('say review');
   await tap('#rapprove', { wait: 1200 }); end();
   R.checks.sayLogged = (await today()).entries.length; await shot('02b-after-say');
   // Say it via + button
@@ -79,13 +79,6 @@ const fs = require('fs');
   start('Barcode (typed) → Look up'); await tap('#app [data-act=scan]', { wait: 900 }); await p.fill('#bcode', '0055577101015'); await tap('#bgo', { wait: 5000 }); end();
   R.checks.barcode = await p.evaluate(() => { const s = [...document.querySelectorAll('.sheet.on')].pop(); return s ? s.querySelector('h2').textContent + ' | ' + (s.querySelector('#scanmsg') || {}).textContent : 'no sheet'; });
   await shot('10-barcode'); await audit('barcode'); await p.evaluate(() => { while (document.querySelector('.sheet.on [data-close]')) { document.querySelectorAll('.sheet.on [data-close]').forEach(x => x.click()); break; } }); await p.waitForTimeout(500); await closeTop(); await closeTop();
-  // Coach
-  start('Coach → Eat next → pick → Approve'); await tap('#tabbar [data-tab=coach]', { wait: 1200 }); await shot('11-coach-next'); await audit('coach next');
-  const pk = await p.$('#app [data-coach-pick]'); if (pk) { await tap('#app [data-coach-pick]', { wait: 900 }); await shot('11b-coach-review'); await tap('#rapprove', { wait: 1200 }); } end();
-  start('Coach → Meal ideas → log idea'); await tap('#app [data-coach-tab=meals]', { wait: 1200 }); await shot('12-coach-meals', true); await audit('coach meals');
-  R.checks.mealPortions = await p.$$eval('.co-parts li', x => x.map(l => l.innerText).slice(0, 12));
-  if (await p.$('#app [data-coach-idea]')) { await tap('#app [data-coach-idea]', { wait: 900 }); await shot('12b-idea-review'); await closeTop(); } end();
-  await tap('#app [data-coach-tab=insights]', { wait: 1200 }); await shot('13-insights', true); await audit('insights');
   // Progress: weigh-in + goal
   await tap('#tabbar [data-tab=progress]', { wait: 900 }); await shot('14-progress', true); await audit('progress');
   start('Weigh-in'); await tap('#app [data-act=log-weight]'); await p.fill('#wl', '182.4'); await tap('#wsave', { wait: 800 }); end();
@@ -121,7 +114,7 @@ const fs = require('fs');
   await p.reload(); await p.waitForTimeout(1200);
   R.checks.saveOnHide = await p.evaluate(async () => { const S = __fuel.S(); __fuel.addWater(123); const raw0 = localStorage.getItem('fuel.v1'); window.dispatchEvent(new Event('pagehide')); const raw1 = localStorage.getItem('fuel.v1'); return { immediately: raw0.includes('"ml":123'), afterPagehide: raw1.includes('"ml":123') }; });
   // CSS / iOS checks
-  R.checks.css = await p.evaluate(async () => { const css = (await Promise.all(['css/app.css', 'css/themes.css', 'css/coach.css'].map(u => fetch(u).then(r => r.text())))).join('\n');
+  R.checks.css = await p.evaluate(async () => { const css = (await Promise.all(['css/app.css', 'css/themes.css'].map(u => fetch(u).then(r => r.text())))).join('\n');
     const decls = []; css.replace(/\/\*[\s\S]*?\*\//g, '').split('}').forEach(r => { const [sel, body] = r.split('{'); if (!body) return; body.split(';').forEach(d => { const i = d.indexOf(':'); if (i > 0) decls.push({ sel: sel.trim().replace(/\s+/g, ' '), prop: d.slice(0, i).trim(), val: d.slice(i + 1) }); }); });
     const cm = decls.filter(d => d.val.includes('color-mix(')); const rules = cm;
     const noFallback = cm.filter(d => !decls.slice(0, decls.indexOf(d)).some(o => o.sel === d.sel && o.prop === d.prop && !o.val.includes('color-mix('))).map(d => d.sel).length;

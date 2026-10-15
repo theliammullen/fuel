@@ -28,6 +28,7 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console ' + m.text()); });
   if (process.env.PXDBG) await p.addInitScript(() => { window.__pxdbg = 1; });
+  await p.route(/api\.nal\.usda\.gov/, r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ foods: [{ gtinUpc: '00016000275287', description: 'CHEERIOS TOASTED WHOLE GRAIN OAT CEREAL', brandOwner: 'GENERAL MILLS SALES INC.', servingSize: 39, servingSizeUnit: 'g', householdServingFullText: '1.5 cup', publishedDate: '2024-03-01', foodNutrients: [['208', 359], ['203', 12.8], ['204', 6.4], ['205', 74.4], ['291', 10.3], ['269', 3.6], ['307', 487], ['301', 333], ['303', 21.8]].map(([n, v]) => ({ nutrientNumber: n, value: v })) }] }) }));
   await p.goto(BASE); await p.waitForTimeout(800);
   await seed(p); await p.reload(); await p.waitForTimeout(1500);
   const shot = async (name, full) => { await p.waitForTimeout(1300); await p.screenshot({ path: OUT + name + '.png', fullPage: !!full }); console.log('shot', name); };
@@ -137,10 +138,24 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
       for (const lay of ['rings', 'cards', 'compact']) { await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: lay }); await p.reload(); await p.waitForTimeout(1300); if (lay === 'cards' && m === 'dark') { await p.evaluate(() => window.scrollTo(0, 0)); await shot('kitchen-dark-cards'); }
         issues += await taps(`kitchen ${m} ${lay}`); issues += await sweep(`kitchen ${m} ${lay}`, 150); }
       await setLook(p, { theme: 'kitchen', kitchenMode: m, layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1200);
-      await p.click('#tabbar [data-tab=coach]'); await p.waitForTimeout(1200); await shot('kitchen-' + m + '-coach'); issues += await taps('kitchen ' + m + ' coach'); issues += await sweep('kitchen ' + m + ' coach');
       for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`#tabbar [data-tab=${tab}]`); await p.waitForTimeout(900); issues += await sweep(`kitchen ${m} ${tab}`); }
       await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
       await p.click('#fab'); await p.waitForTimeout(700); issues += await pixelAudit(`kitchen ${m} + sheet (glass over tiles)`); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
+      // ---- v1.5 hero tiles + both review sheets (scan label / barcode) ----
+      const V15 = '/workspace/nutrition-app/screenshots/v15/'; require('fs').mkdirSync(V15, { recursive: true });
+      await p.screenshot({ path: V15 + `today-kitchen-${m}.png` });
+      if (m === 'light') await p.screenshot({ path: V15 + 'hero-tiles.png', clip: await p.locator('#app .tgrid').first().boundingBox().then(r => ({ x: 0, y: Math.max(0, r.y - 10), width: 393, height: 270 })) });
+      await p.evaluate(async () => { const blob = await (await fetch('test/ocr/img/proteinbar-ca~photo.jpg')).blob(); await FuelScan.run(blob, {}); });
+      await p.waitForSelector('#cflog', { timeout: 60000 }); await p.waitForTimeout(900);
+      await p.screenshot({ path: V15 + `scan-label-review-${m}.png` });
+      issues += await taps(`kitchen ${m} scan-label review`); issues += await pixelAudit(`kitchen ${m} scan-label review`);
+      await p.evaluate(() => document.querySelector('.sheet.on .sbody, .sheet.on').scrollTop = 99999); await p.waitForTimeout(400); issues += await pixelAudit(`kitchen ${m} scan-label review (bottom)`);
+      await p.evaluate(() => __fuel.closeAll()); await p.waitForTimeout(500);
+      await p.click('#app [data-act=scan]'); await p.waitForSelector('#scanmsg', { state: 'attached' }); await p.evaluate(() => __fuel.lookupBarcode('016000275287'));
+      await p.waitForSelector('#cflog', { timeout: 15000 }); await p.waitForTimeout(900);
+      await p.screenshot({ path: V15 + `barcode-review-${m}.png` });
+      issues += await taps(`kitchen ${m} barcode review`); issues += await pixelAudit(`kitchen ${m} barcode review`);
+      await p.evaluate(() => __fuel.closeAll()); await p.evaluate(() => { const S = __fuel.S(); S.customFoods = S.customFoods.filter(c => !c.code); S.favs = S.favs.filter(f => !/^cus:/.test(f.key) || S.customFoods.some(c => 'cus:' + c.id === f.key)); __fuel.save(); }); await p.waitForTimeout(500);
     }
     await setLook(p, { theme: 'kitchen', kitchenMode: 'light', layout: 'tiles', palette: 'harmonised' }); await p.reload(); await shot('kitchen-light-harmonised'); issues += await pixelAudit('kitchen light harmonised');
     await setLook(p, { theme: 'kitchen', kitchenMode: 'dark', layout: 'tiles', palette: 'harmonised' }); await p.reload(); await p.waitForTimeout(1300); issues += await pixelAudit('kitchen dark harmonised');
@@ -197,29 +212,12 @@ const setLook = (p, look) => p.evaluate(l => localStorage.setItem('fuel.look', J
     const tabs = await p.$$eval('#tabbar .tab', ts => ts.map(t => { const s = t.querySelector('span') || t; const r = document.createRange(); r.selectNodeContents(s); return { w: t.getBoundingClientRect().width, lw: r.getBoundingClientRect().width, n: t.textContent.trim() }; }));
     const tight = tabs.filter(t => t.lw > t.w - 8 || t.w < 44); console.log('tab widths:', tabs.map(t => t.n + ' ' + t.w.toFixed(0) + '/' + t.lw.toFixed(0)).join(', '), tight.length ? 'TIGHT' : 'ok'); issues += tight.length;
     const vp = await p.$eval('meta[name=viewport]', m => m.content); const zoomOk = !/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(\D|$)/.test(vp); console.log('viewport allows pinch-zoom:', zoomOk, vp); if (!zoomOk) issues++;
-    await p.click('#app [data-act=voice]'); await p.waitForTimeout(500); await p.fill('#vtxt', '2 eggs and a black coffee'); await p.click('#vgo'); await p.waitForTimeout(1500);
+    await p.click('#fab'); await p.waitForTimeout(500); await p.click('.sheet.on [data-act=voice]'); await p.waitForTimeout(500); await p.fill('#vtxt', '2 eggs and a black coffee'); await p.click('#vgo'); await p.waitForTimeout(1500);
     await shot('voice-review'); issues += report(await audit('review')); issues += await smallInputs('review'); await p.click('#rapprove'); await p.waitForTimeout(1200);
     await p.click('#app [data-act=label]'); await p.waitForTimeout(500); await p.click('#lex'); await p.click('#lgo'); await p.waitForTimeout(800); await shot('label-review'); issues += await smallInputs('label review'); await p.click('.sheet [data-close]'); await p.waitForTimeout(500);
-    await p.click('#app [data-coach-pick="0"]'); await p.waitForTimeout(700); console.log('coach tile pick opens review:', !!(await p.$('.sheet.on #rapprove'))); await p.click('.sheet.on [data-close]'); await p.waitForTimeout(500);
-    // Tiles Coach tile carries Coach's supplement picks (≤ 2, 💊) and the goal-above-UL note (the full Coach card is hidden in Tiles)
-    const ct = await p.evaluate(() => { const t = document.querySelector('#app .tl.c-coach'); return t && { supps: [...t.querySelectorAll('.tsupp')].map(e => e.textContent.trim()), badge: [...t.querySelectorAll('.tsupp .sb')].every(b => b.textContent.includes('💊')), ul: (t.querySelector('.tul') || {}).textContent || '', cardHidden: getComputedStyle(document.querySelector('#app .co-card') || document.body).display === 'none' || !document.querySelector('#app .co-card') }; });
-    const ctOk = !!ct && ct.supps.length >= 1 && ct.supps.length <= 2 && ct.badge && /Vitamin D.*above the general upper limit/.test(ct.ul);
-    console.log('coach tile supplements + UL note:', ctOk, JSON.stringify(ct)); if (!ctOk) issues++;
-    for (const th of [['midnight'], ['daylight'], ['kitchen', 'light'], ['kitchen', 'dark'], ['paper'], ['oled']]) {
-      await setLook(p, { theme: th[0], kitchenMode: th[1], layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1300);
-      await p.evaluate(() => { const e = document.querySelector('#app .tl.c-coach'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 140); }); await p.waitForTimeout(500);
-      if (th[0] === 'midnight') await shot('tiles-coach-supplements');
-      issues += await pixelAudit('coach tile supplements ' + th.join(' ')); issues += await taps('coach tile ' + th.join(' ')); // scrolled: the bar is over tiles, so contrast comes from the pixel audit
-    }
-    await setLook(p, { theme: 'midnight', layout: 'tiles' }); await p.reload(); await p.waitForTimeout(1300);
-    await p.click('#app .tl.c-coach .tsupp >> nth=0'); await p.waitForTimeout(800); const sr = await p.evaluate(() => !!document.querySelector('.sheet.on #rapprove') && /vitamin d|d3|creatine/i.test(document.querySelector('.sheet.on').textContent));
-    console.log('coach tile supplement opens its review:', sr); if (!sr) issues++; await p.click('.sheet.on [data-close]'); await p.waitForTimeout(600);
-    await p.click('#app [data-coach="open"]'); await p.waitForTimeout(900); console.log('coach tile opens coach view; tab on:', await p.$eval('#tabbar [data-tab=coach]', x => x.classList.contains('on'))); await shot('coach-view-midnight'); issues += report(await audit('coach view'));
-    await p.click('#tabbar [data-tab=today]'); await p.waitForTimeout(600);
-    for (const tab of ['nutrients', 'progress', 'awards', 'coach']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab)); }
+    for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab)); }
     await setLook(p, { theme: 'daylight' }); await p.reload(); await p.waitForTimeout(900);
-    for (const tab of ['nutrients', 'progress', 'awards', 'coach']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab + ' daylight')); }
-    await shot('coach-view-daylight');
+    for (const tab of ['nutrients', 'progress', 'awards']) { await p.click(`[data-tab=${tab}]`); await p.waitForTimeout(900); issues += report(await audit(tab + ' daylight')); }
     await shot('daylight-awards');
     // reduce motion via OS setting
     const c2 = await b.newContext({ viewport: { width: 393, height: 852 }, reducedMotion: 'reduce' }); const p2 = await c2.newPage();
